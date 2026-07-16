@@ -1,13 +1,13 @@
 package com.battleship.model.ship;
 
-import com.battleship.model.board.Coordinate;
-import com.battleship.model.enums.Orientation;
-import com.battleship.model.enums.ShipType;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import com.battleship.model.board.Coordinate;
+import com.battleship.model.enums.Orientation;
+import com.battleship.model.enums.ShipType;
 
 /**
  * Clase base para representar un barco del juego.

@@ -1,9 +1,9 @@
 package com.battleship.model.board;
 
+import java.io.Serializable;
+
 import com.battleship.model.enums.CellState;
 import com.battleship.model.ship.Ship;
-
-import java.io.Serializable;
 
 /**
  * Represents a cell on the Battleship game board.

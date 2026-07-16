@@ -8,6 +8,7 @@ module com.battleship {
     exports com.battleship.model;
     exports com.battleship.model.board;
     exports com.battleship.model.enums;
+    exports com.battleship.model.history;
     exports com.battleship.model.player;
     exports com.battleship.model.ship;
     exports com.battleship.service;
