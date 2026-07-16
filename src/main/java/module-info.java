@@ -4,6 +4,7 @@ module com.battleship {
     requires javafx.graphics;
 
     exports com.battleship.app;
+    exports com.battleship.exception;
     exports com.battleship.model;
     exports com.battleship.model.board;
     exports com.battleship.model.enums;

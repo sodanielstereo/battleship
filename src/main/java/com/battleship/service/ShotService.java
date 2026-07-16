@@ -1,5 +1,6 @@
 package com.battleship.service;
 
+import com.battleship.exception.InvalidShotException;
 import com.battleship.model.board.Board;
 import com.battleship.model.board.Cell;
 import com.battleship.model.board.Coordinate;
@@ -24,7 +25,7 @@ public class ShotService {
         Cell cell = targetBoard.getCell(coordinate);
 
         if (cell.wasShot()) {
-            throw new IllegalStateException("La casilla ya fue atacada anteriormente.");
+            throw new InvalidShotException("La casilla ya fue atacada anteriormente.");
         }
 
         if (!cell.hasShip()) {
@@ -52,15 +53,15 @@ public class ShotService {
 
     private void validateShotInput(Board targetBoard, Coordinate coordinate) {
         if (targetBoard == null) {
-            throw new IllegalArgumentException("El tablero objetivo no puede ser nulo.");
+            throw new InvalidShotException("El tablero objetivo no puede ser nulo.");
         }
 
         if (coordinate == null) {
-            throw new IllegalArgumentException("La coordenada del disparo no puede ser nula.");
+            throw new InvalidShotException("La coordenada del disparo no puede ser nula.");
         }
 
         if (!targetBoard.isInside(coordinate)) {
-            throw new IllegalArgumentException("La coordenada del disparo está fuera del tablero.");
+            throw new InvalidShotException("La coordenada del disparo está fuera del tablero.");
         }
     }
 }
