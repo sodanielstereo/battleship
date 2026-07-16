@@ -1,33 +1,40 @@
 package com.battleship.controller;
 
+import java.io.IOException;
+
 import com.battleship.model.Game;
 import com.battleship.service.GameService;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 
 /**
  * Controlador de la pantalla inicial del juego.
  *
- * En este PR se conecta la interfaz inicial con el servicio principal
- * para crear una partida a partir del nickname ingresado.
+ * Permite crear una partida básica a partir del nickname ingresado
+ * y navegar hacia la pantalla de tableros.
  */
 public class MainController {
 
+    private static final String BATTLE_VIEW_PATH = "/com/battleship/view/battle-view.fxml";
+
     private final GameService gameService;
-    private Game currentGame;
 
     @FXML
     private TextField nicknameTextField;
 
     @FXML
-    private Button newGameButton;
+    private Button loadGameButton;
 
     @FXML
-    private Button loadGameButton;
+    private Button newGameButton;
 
     @FXML
     private Label statusLabel;
@@ -50,7 +57,7 @@ public class MainController {
     }
 
     /**
-     * Crea una nueva partida usando el nickname ingresado por el usuario.
+     * Crea una nueva partida y abre la pantalla inicial de tableros.
      */
     @FXML
     private void onNewGameClicked() {
@@ -62,17 +69,14 @@ public class MainController {
             return;
         }
 
-        currentGame = gameService.createGame(nickname);
+        Game game = gameService.createGame(nickname);
 
-        statusLabel.setText("Partida creada correctamente.");
-        gameInfoLabel.setText(
-                "Jugador: " + currentGame.getHumanPlayer().getNickname()
-                        + " | Oponente: " + currentGame.getMachinePlayer().getNickname()
-                        + " | Fase: " + currentGame.getPhase());
-
-        showInformation(
-                "Nueva partida",
-                "La partida fue creada correctamente para " + currentGame.getHumanPlayer().getNickname() + ".");
+        try {
+            openBattleView(game);
+        } catch (IOException exception) {
+            showWarning("Error al abrir la partida", "No fue posible cargar la vista de tableros.");
+            statusLabel.setText("Error al cargar la pantalla de juego.");
+        }
     }
 
     /**
@@ -82,6 +86,21 @@ public class MainController {
     @FXML
     private void onLoadGameClicked() {
         showInformation("Cargar partida", "Esta opción se implementará en el PR de persistencia.");
+    }
+
+    private void openBattleView(Game game) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(BATTLE_VIEW_PATH));
+        Parent root = loader.load();
+
+        BattleController battleController = loader.getController();
+        battleController.initializeGame(game);
+
+        Stage stage = (Stage) nicknameTextField.getScene().getWindow();
+        Scene scene = new Scene(root, 1000, 700);
+
+        stage.setScene(scene);
+        stage.setTitle("Batalla Naval - Tableros");
+        stage.show();
     }
 
     private void showWarning(String title, String message) {

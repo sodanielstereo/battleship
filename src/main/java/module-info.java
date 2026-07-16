@@ -1,7 +1,7 @@
 module com.battleship {
     requires javafx.controls;
     requires javafx.fxml;
-    requires javafx.graphics;
+    requires transitive javafx.graphics;
 
     exports com.battleship.app;
     exports com.battleship.exception;
