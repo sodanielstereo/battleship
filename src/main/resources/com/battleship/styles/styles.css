@@ -4,7 +4,7 @@
 }
 
 .title-label {
-    -fx-font-size: 38px;
+    -fx-font-size: 40px;
     -fx-font-weight: bold;
     -fx-text-fill: #0b3558;
 }
@@ -14,13 +14,48 @@
     -fx-text-fill: #315c7c;
 }
 
-.status-label {
+.section-title-label {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0b3558;
+}
+
+.normal-label {
     -fx-font-size: 14px;
     -fx-text-fill: #37474f;
 }
 
+.status-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #0d47a1;
+}
+
+.game-info-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #455a64;
+}
+
+.start-card {
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-background-radius: 14;
+    -fx-border-color: #bbdefb;
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+    -fx-padding: 28;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 12, 0, 0, 4);
+    -fx-max-width: 520;
+}
+
+.nickname-field {
+    -fx-font-size: 14px;
+    -fx-padding: 9 12 9 12;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #90caf9;
+}
+
 .primary-button {
-    -fx-font-size: 15px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
     -fx-padding: 10 24 10 24;
     -fx-background-radius: 8;
@@ -31,4 +66,22 @@
 
 .primary-button:hover {
     -fx-background-color: #0d47a1;
+}
+
+.secondary-button {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 24 10 24;
+    -fx-background-radius: 8;
+    -fx-background-color: #78909c;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #546e7a;
+}
+
+.secondary-button:disabled {
+    -fx-opacity: 0.55;
 }
