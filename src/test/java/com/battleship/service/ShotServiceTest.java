@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
+import com.battleship.exception.InvalidShotException;
 import com.battleship.model.board.Board;
 import com.battleship.model.board.Coordinate;
 import com.battleship.model.enums.CellState;
@@ -75,14 +76,24 @@ class ShotServiceTest {
     }
 
     @Test
-    void shouldRejectRepeatedShot() {
+    void shouldRejectRepeatedShotWithCustomException() {
         Board board = new Board();
 
         shotService.shoot(board, new Coordinate(5, 5));
 
         assertThrows(
-                IllegalStateException.class,
+                InvalidShotException.class,
                 () -> shotService.shoot(board, new Coordinate(5, 5))
+        );
+    }
+
+    @Test
+    void shouldRejectShotOutsideBoardWithCustomException() {
+        Board board = new Board();
+
+        assertThrows(
+                InvalidShotException.class,
+                () -> shotService.shoot(board, new Coordinate(10, 0))
         );
     }
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 
+import com.battleship.exception.InvalidGameStateException;
 import com.battleship.model.Game;
 import com.battleship.model.board.Coordinate;
 import com.battleship.model.enums.GamePhase;
@@ -22,13 +23,13 @@ class GameServiceTest {
         Game game = gameService.createGame("Daniel");
 
         assertEquals("Daniel", game.getHumanPlayer().getNickname());
-        assertEquals("Artificial Player", game.getMachinePlayer().getNickname());
+        assertEquals("Máquina", game.getMachinePlayer().getNickname());
         assertEquals(GamePhase.PLACEMENT, game.getPhase());
         assertEquals(Turn.HUMAN, game.getCurrentTurn());
     }
 
     @Test
-    void shouldStartGameInProgressWithHumanTurn() {
+    void shouldStartGameInProgressWithHumanTurn() throws InvalidGameStateException {
         Game game = gameService.createGame("Daniel");
 
         gameService.startGame(game);
@@ -38,7 +39,7 @@ class GameServiceTest {
     }
 
     @Test
-    void waterShotShouldSwitchTurn() {
+    void waterShotShouldSwitchTurn() throws InvalidGameStateException {
         Game game = gameService.createGame("Daniel");
         gameService.startGame(game);
 
@@ -49,7 +50,7 @@ class GameServiceTest {
     }
 
     @Test
-    void hitShotShouldKeepTurn() {
+    void hitShotShouldKeepTurn() throws InvalidGameStateException {
         Game game = gameService.createGame("Daniel");
 
         gameService.placeShip(
@@ -68,7 +69,7 @@ class GameServiceTest {
     }
 
     @Test
-    void sinkingAllEnemyShipsShouldFinishGame() {
+    void sinkingAllEnemyShipsShouldFinishGame() throws InvalidGameStateException {
         Game game = gameService.createGame("Daniel");
 
         gameService.placeShip(
@@ -91,8 +92,19 @@ class GameServiceTest {
         Game game = gameService.createGame("Daniel");
 
         assertThrows(
-                IllegalStateException.class,
+                InvalidGameStateException.class,
                 () -> gameService.humanShoots(game, new Coordinate(0, 0))
+        );
+    }
+
+    @Test
+    void shouldNotAllowMachineShotWhenItIsHumanTurn() throws InvalidGameStateException {
+        Game game = gameService.createGame("Daniel");
+        gameService.startGame(game);
+
+        assertThrows(
+                InvalidGameStateException.class,
+                () -> gameService.machineShoots(game, new Coordinate(0, 0))
         );
     }
 }

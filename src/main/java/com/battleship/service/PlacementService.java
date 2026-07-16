@@ -3,6 +3,7 @@ package com.battleship.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.battleship.exception.InvalidPlacementException;
 import com.battleship.model.board.Board;
 import com.battleship.model.board.Cell;
 import com.battleship.model.board.Coordinate;
@@ -85,7 +86,7 @@ public class PlacementService {
      */
     public void placeShip(Board board, Ship ship, Coordinate startCoordinate, Orientation orientation) {
         if (!canPlaceShip(board, ship, startCoordinate, orientation)) {
-            throw new IllegalArgumentException("El barco no puede ubicarse en la posición indicada.");
+            throw new InvalidPlacementException("El barco no puede ubicarse en la posición indicada.");
         }
 
         List<Coordinate> positions = calculatePositions(startCoordinate, ship.getSize(), orientation);
@@ -100,15 +101,15 @@ public class PlacementService {
 
     private void validatePlacementInput(Coordinate startCoordinate, int shipSize, Orientation orientation) {
         if (startCoordinate == null) {
-            throw new IllegalArgumentException("La coordenada inicial no puede ser nula.");
+            throw new InvalidPlacementException("La coordenada inicial no puede ser nula.");
         }
 
         if (shipSize <= 0) {
-            throw new IllegalArgumentException("El tamaño del barco debe ser mayor que cero.");
+            throw new InvalidPlacementException("El tamaño del barco debe ser mayor que cero.");
         }
 
         if (orientation == null) {
-            throw new IllegalArgumentException("La orientación no puede ser nula.");
+            throw new InvalidPlacementException("La orientación no puede ser nula.");
         }
     }
 }

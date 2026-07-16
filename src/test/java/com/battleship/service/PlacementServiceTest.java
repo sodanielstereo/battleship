@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
+import com.battleship.exception.InvalidPlacementException;
 import com.battleship.model.board.Board;
 import com.battleship.model.board.Coordinate;
 import com.battleship.model.enums.CellState;
@@ -75,12 +76,12 @@ class PlacementServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenPlacementIsInvalid() {
+    void shouldThrowCustomExceptionWhenPlacementIsInvalid() {
         Board board = new Board();
         Destroyer destroyer = new Destroyer();
 
         assertThrows(
-                IllegalArgumentException.class,
+                InvalidPlacementException.class,
                 () -> placementService.placeShip(board, destroyer, new Coordinate(0, 9), Orientation.HORIZONTAL)
         );
     }

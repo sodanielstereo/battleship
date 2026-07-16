@@ -70,6 +70,6 @@ class SetupTest {
         assertEquals(GamePhase.PLACEMENT, game.getPhase());
         assertEquals(Turn.HUMAN, game.getCurrentTurn());
         assertEquals("Daniel", game.getHumanPlayer().getNickname());
-        assertEquals("Artificial Player", game.getMachinePlayer().getNickname());
+        assertEquals("Máquina", game.getMachinePlayer().getNickname());
     }
 }
