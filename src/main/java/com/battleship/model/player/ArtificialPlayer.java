@@ -21,12 +21,12 @@ public class ArtificialPlayer extends Player {
     public ArtificialPlayer() {
         super("Máquina");
         this.availableShots = new ArrayDeque<>();
-        reloadAvailableShots(Board.DEFAULT_SIZE);
+        loadAvailableShots(Board.DEFAULT_SIZE);
     }
 
     public Coordinate nextAvailableShot() {
         if (availableShots.isEmpty()) {
-            reloadAvailableShots(Board.DEFAULT_SIZE);
+            loadAvailableShots(Board.DEFAULT_SIZE);
         }
 
         return availableShots.poll();
@@ -37,6 +37,10 @@ public class ArtificialPlayer extends Player {
     }
 
     public void reloadAvailableShots(int boardSize) {
+        loadAvailableShots(boardSize);
+    }
+
+    private void loadAvailableShots(int boardSize) {
         List<Coordinate> coordinates = new ArrayList<>();
 
         for (int row = 0; row < boardSize; row++) {
