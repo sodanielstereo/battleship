@@ -9,6 +9,7 @@ module com.battleship {
     exports com.battleship.model.enums;
     exports com.battleship.model.player;
     exports com.battleship.model.ship;
+    exports com.battleship.service;
 
     opens com.battleship.controller to javafx.fxml;
 }
