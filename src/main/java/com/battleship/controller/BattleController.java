@@ -1,6 +1,9 @@
 package com.battleship.controller;
 
 import java.io.IOException;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import java.util.List;
 
 import com.battleship.exception.InvalidGameStateException;
@@ -13,6 +16,7 @@ import com.battleship.model.board.Coordinate;
 import com.battleship.model.enums.CellState;
 import com.battleship.model.enums.GamePhase;
 import com.battleship.model.enums.Orientation;
+import com.battleship.model.enums.ShipType;
 import com.battleship.model.enums.ShotResult;
 import com.battleship.model.enums.Turn;
 import com.battleship.model.player.Player;
@@ -26,12 +30,26 @@ import com.battleship.service.GameService;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -73,6 +91,10 @@ public class BattleController {
      */
     public void initializeGame(Game game) {
         this.currentGame = game;
+        this.shipsSprite = new Image(getClass().getResourceAsStream(SHIPS_SPRITE_PATH));
+
+        currentGame.setPhase(GamePhase.PLAYER_POSITIONING_SHIPS);
+        loadInitialFleetCounts();
 
         playerInfoLabel.setText(
                 "Jugador: " + currentGame.getHumanPlayer().getNickname()
@@ -183,6 +205,69 @@ public class BattleController {
         Label coordinateLabel = new Label(String.valueOf(coordinate.getRow() + 1)
                 + "," + String.valueOf(coordinate.getColumn() + 1));
         coordinateLabel.getStyleClass().add("coordinate-label");
+        visualCell.getChildren().add(coordinateLabel);
+
+        if (currentGame.getPhase() == GamePhase.PLAYER_POSITIONING_SHIPS && !enemyBoard) {
+            configurePlacementDrop(visualCell, coordinate);
+        }
+
+        if (enemyBoard) {
+            visualCell.setOnMouseClicked(event -> onEnemyCellClicked(coordinate));
+        }
+
+        return visualCell;
+    }
+
+    private void configurePlacementDrop(StackPane visualCell, Coordinate coordinate) {
+        visualCell.setOnDragOver(event -> {
+            if (event.getGestureSource() != visualCell && event.getDragboard().hasString()) {
+                event.acceptTransferModes(TransferMode.MOVE);
+            }
+            event.consume();
+        });
+
+        visualCell.setOnDragDropped(event -> {
+            boolean success = placeDraggedShip(event, coordinate);
+            event.setDropCompleted(success);
+            event.consume();
+        });
+    }
+
+    private boolean placeDraggedShip(DragEvent event, Coordinate coordinate) {
+        Dragboard dragboard = event.getDragboard();
+
+        if (!dragboard.hasString() || currentGame.getPhase() != GamePhase.PLAYER_POSITIONING_SHIPS) {
+            return false;
+        }
+
+        ShipType shipType = ShipType.valueOf(dragboard.getString());
+
+        if (remainingShips.getOrDefault(shipType, 0) <= 0) {
+            return false;
+        }
+
+        try {
+            gameService.placeShip(
+                    currentGame.getHumanPlayer(),
+                    createShip(shipType),
+                    coordinate,
+                    currentOrientation
+            );
+            remainingShips.put(shipType, remainingShips.get(shipType) - 1);
+            statusLabel.setText(shipType.getDisplayName() + " ubicado en " + formatCoordinate(coordinate) + ".");
+            finishPlacementIfReady();
+            refreshView();
+            return true;
+        } catch (InvalidPlacementException exception) {
+            statusLabel.setText("No puedes ubicar esa nave ahi.");
+            return false;
+        }
+    }
+
+    private void finishPlacementIfReady() {
+        if (!allHumanShipsPlaced()) {
+            return;
+        }
 
         visualCell.getChildren().add(coordinateLabel);
 
