@@ -2,8 +2,10 @@ package com.battleship.controller;
 
 import java.io.IOException;
 import java.util.EnumMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.battleship.exception.InvalidGameStateException;
 import com.battleship.exception.InvalidPlacementException;
@@ -36,6 +38,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -49,6 +52,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -59,6 +63,7 @@ public class BattleController {
 
     private static final String MAIN_VIEW_PATH = "/com/battleship/view/main-view.fxml";
     private static final String SHIPS_SPRITE_PATH = "/com/battleship/sprites/ships.png";
+    private static final String DRAG_MOVE_MARKER = "MOVE";
     private static final Duration MACHINE_TURN_DELAY = Duration.millis(650);
     private static final int CELL_SIZE = 34;
 
@@ -68,7 +73,9 @@ public class BattleController {
     private Game currentGame;
     private Image shipsSprite;
     private Orientation currentOrientation;
+    private Ship draggedShip;
     private boolean machineTurnRunning;
+    private boolean showMachineShips;
 
     @FXML
     private Label playerInfoLabel;
@@ -94,10 +101,14 @@ public class BattleController {
     @FXML
     private Button orientationButton;
 
+    @FXML
+    private CheckBox showMachineShipsCheckBox;
+
     public BattleController() {
         this.gameService = new GameService();
         this.remainingShips = new EnumMap<>(ShipType.class);
         this.currentOrientation = Orientation.HORIZONTAL;
+        this.showMachineShips = false;
     }
 
     /**
@@ -132,6 +143,15 @@ public class BattleController {
     }
 
     /**
+     * Muestra u oculta las naves del oponente en su tablero.
+     */
+    @FXML
+    private void onShowMachineShipsToggled() {
+        showMachineShips = showMachineShipsCheckBox.isSelected();
+        refreshView();
+    }
+
+    /**
      * Regresa a la pantalla inicial.
      */
     @FXML
@@ -163,11 +183,24 @@ public class BattleController {
         phaseInfoLabel.setText("Fase actual: " + describePhase(currentGame.getPhase())
                 + " | Turno: " + currentGame.getCurrentTurn());
         buildBoard(humanBoardGrid, currentGame.getHumanPlayer().getBoard(), "human-board-cell", true, false);
-        buildBoard(machineBoardGrid, currentGame.getMachinePlayer().getBoard(), "machine-board-cell", false, true);
+        boolean revealMachineShips = showMachineShips
+                && currentGame.getPhase() != GamePhase.PLAYER_POSITIONING_SHIPS;
+        buildBoard(
+                machineBoardGrid,
+                currentGame.getMachinePlayer().getBoard(),
+                "machine-board-cell",
+                revealMachineShips,
+                true
+        );
         buildShipSelection();
         boolean positioningShips = currentGame.getPhase() == GamePhase.PLAYER_POSITIONING_SHIPS;
         shipPanel.setVisible(positioningShips);
         shipPanel.setManaged(positioningShips);
+        showMachineShipsCheckBox.setDisable(positioningShips);
+        if (positioningShips) {
+            showMachineShipsCheckBox.setSelected(false);
+            showMachineShips = false;
+        }
         machineBoardGrid.setDisable(currentGame.getPhase() != GamePhase.IN_PROGRESS
                 || currentGame.getCurrentTurn() != Turn.HUMAN
                 || machineTurnRunning);
@@ -201,6 +234,10 @@ public class BattleController {
 
         if (remaining > 0 && currentGame.getPhase() == GamePhase.PLAYER_POSITIONING_SHIPS) {
             row.setOnDragDetected(event -> startShipDrag(event, row, shipImage, shipType));
+            row.setOnDragDone(event -> {
+                draggedShip = null;
+                event.consume();
+            });
         } else {
             row.setDisable(true);
         }
@@ -209,6 +246,7 @@ public class BattleController {
     }
 
     private void startShipDrag(MouseEvent event, HBox source, ImageView shipImage, ShipType shipType) {
+        draggedShip = null;
         Dragboard dragboard = source.startDragAndDrop(TransferMode.MOVE);
 
         ClipboardContent content = new ClipboardContent();
@@ -232,6 +270,11 @@ public class BattleController {
                 boardGrid.add(cell, column, row);
             }
         }
+
+        if (revealShips) {
+            overlayShipSprites(boardGrid, board);
+            overlayShotMarkers(boardGrid, board, cellStyleClass);
+        }
     }
 
     private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean revealShips, boolean enemyBoard) {
@@ -254,6 +297,10 @@ public class BattleController {
 
         if (currentGame.getPhase() == GamePhase.PLAYER_POSITIONING_SHIPS && !enemyBoard) {
             configurePlacementDrop(visualCell, coordinate);
+
+            if (boardCell.hasShip()) {
+                configureBoardShipDrag(visualCell, boardCell.getShip());
+            }
         }
 
         if (enemyBoard) {
@@ -278,6 +325,30 @@ public class BattleController {
         });
     }
 
+    private void configureBoardShipDrag(StackPane visualCell, Ship ship) {
+        visualCell.setOnDragDetected(event -> startBoardShipDrag(event, visualCell, ship));
+        visualCell.setOnDragDone(event -> {
+            draggedShip = null;
+            event.consume();
+        });
+    }
+
+    private void startBoardShipDrag(MouseEvent event, StackPane source, Ship ship) {
+        draggedShip = ship;
+
+        Dragboard dragboard = source.startDragAndDrop(TransferMode.MOVE);
+
+        ClipboardContent content = new ClipboardContent();
+        content.putString(DRAG_MOVE_MARKER);
+        dragboard.setContent(content);
+
+        SnapshotParameters snapshotParameters = new SnapshotParameters();
+        snapshotParameters.setFill(Color.TRANSPARENT);
+        dragboard.setDragView(createShipSpriteContainer(ship).snapshot(snapshotParameters, null));
+
+        event.consume();
+    }
+
     private boolean placeDraggedShip(DragEvent event, Coordinate coordinate) {
         Dragboard dragboard = event.getDragboard();
 
@@ -285,7 +356,19 @@ public class BattleController {
             return false;
         }
 
-        ShipType shipType = ShipType.valueOf(dragboard.getString());
+        String payload = dragboard.getString();
+
+        if (DRAG_MOVE_MARKER.equals(payload)) {
+            return moveDraggedShip(coordinate);
+        }
+
+        ShipType shipType;
+
+        try {
+            shipType = ShipType.valueOf(payload);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
 
         if (remainingShips.getOrDefault(shipType, 0) <= 0) {
             return false;
@@ -293,6 +376,7 @@ public class BattleController {
 
         try {
             gameService.placeShip(
+                    currentGame,
                     currentGame.getHumanPlayer(),
                     createShip(shipType),
                     coordinate,
@@ -303,8 +387,31 @@ public class BattleController {
             finishPlacementIfReady();
             refreshView();
             return true;
-        } catch (InvalidPlacementException exception) {
+        } catch (InvalidPlacementException | InvalidGameStateException exception) {
             statusLabel.setText("No puedes ubicar esa nave ahi.");
+            return false;
+        }
+    }
+
+    private boolean moveDraggedShip(Coordinate coordinate) {
+        if (draggedShip == null) {
+            return false;
+        }
+
+        try {
+            gameService.moveShip(
+                    currentGame,
+                    currentGame.getHumanPlayer(),
+                    draggedShip,
+                    coordinate,
+                    currentOrientation
+            );
+            statusLabel.setText(
+                    draggedShip.getDisplayName() + " reubicado en " + formatCoordinate(coordinate) + ".");
+            refreshView();
+            return true;
+        } catch (InvalidPlacementException | InvalidGameStateException exception) {
+            statusLabel.setText("No puedes reubicar esa nave ahi.");
             return false;
         }
     }
@@ -372,10 +479,94 @@ public class BattleController {
         }
 
         if (state == CellState.SHIP && revealShips) {
-            return "cell-ship";
+            return "cell-empty";
         }
 
         return "cell-empty";
+    }
+
+    private void overlayShipSprites(GridPane boardGrid, Board board) {
+        Set<Ship> ships = new LinkedHashSet<>();
+
+        for (Cell cell : board.getCells().values()) {
+            if (cell.hasShip()) {
+                ships.add(cell.getShip());
+            }
+        }
+
+        for (Ship ship : ships) {
+            addShipSpriteToGrid(boardGrid, ship);
+        }
+    }
+
+    private void addShipSpriteToGrid(GridPane boardGrid, Ship ship) {
+        List<Coordinate> positions = ship.getPositions();
+
+        if (positions.isEmpty()) {
+            return;
+        }
+
+        Coordinate start = positions.get(0);
+        StackPane shipContainer = createShipSpriteContainer(ship);
+
+        boardGrid.add(shipContainer, start.getColumn(), start.getRow());
+
+        if (ship.getOrientation() == Orientation.HORIZONTAL) {
+            GridPane.setColumnSpan(shipContainer, ship.getSize());
+        } else {
+            GridPane.setRowSpan(shipContainer, ship.getSize());
+        }
+    }
+
+    private StackPane createShipSpriteContainer(Ship ship) {
+        int span = ship.getSize();
+        boolean horizontal = ship.getOrientation() == Orientation.HORIZONTAL;
+        double containerWidth = horizontal ? span * CELL_SIZE : CELL_SIZE;
+        double containerHeight = horizontal ? CELL_SIZE : span * CELL_SIZE;
+
+        StackPane container = new StackPane();
+        container.setPrefSize(containerWidth, containerHeight);
+        container.setMinSize(containerWidth, containerHeight);
+        container.setMaxSize(containerWidth, containerHeight);
+        container.setAlignment(Pos.CENTER);
+        container.setClip(new Rectangle(containerWidth, containerHeight));
+
+        ImageView shipImage = new ImageView(shipsSprite);
+        shipImage.setViewport(getSpriteViewport(ship.getType()));
+        shipImage.setPreserveRatio(true);
+
+        if (horizontal) {
+            shipImage.setFitWidth(containerWidth - 2);
+            shipImage.setFitHeight(containerHeight - 2);
+        } else {
+            shipImage.setFitWidth(containerHeight - 2);
+            shipImage.setFitHeight(containerWidth - 2);
+            shipImage.setRotate(90);
+        }
+
+        container.getChildren().add(shipImage);
+        container.setMouseTransparent(true);
+
+        return container;
+    }
+
+    private void overlayShotMarkers(GridPane boardGrid, Board board, String cellStyleClass) {
+        for (Cell cell : board.getCells().values()) {
+            CellState state = cell.getState();
+
+            if (state == CellState.WATER || state == CellState.HIT || state == CellState.SUNK) {
+                Coordinate coordinate = cell.getCoordinate();
+                StackPane marker = new StackPane();
+                marker.setPrefSize(CELL_SIZE, CELL_SIZE);
+                marker.setMinSize(CELL_SIZE, CELL_SIZE);
+                marker.setMaxSize(CELL_SIZE, CELL_SIZE);
+                marker.getStyleClass().add("board-cell");
+                marker.getStyleClass().add(cellStyleClass);
+                marker.getStyleClass().add(resolveCellStateStyle(cell, true));
+                marker.setMouseTransparent(true);
+                boardGrid.add(marker, coordinate.getColumn(), coordinate.getRow());
+            }
+        }
     }
 
     private void onEnemyCellClicked(Coordinate coordinate) {

@@ -85,4 +85,50 @@ class PlacementServiceTest {
                 () -> placementService.placeShip(board, destroyer, new Coordinate(0, 9), Orientation.HORIZONTAL)
         );
     }
+
+    @Test
+    void shouldMoveShipToNewPosition() {
+        Board board = new Board();
+        Destroyer destroyer = new Destroyer();
+
+        placementService.placeShip(board, destroyer, new Coordinate(0, 0), Orientation.HORIZONTAL);
+        placementService.moveShip(board, destroyer, new Coordinate(2, 3), Orientation.VERTICAL);
+
+        assertFalse(board.getCell(new Coordinate(0, 0)).hasShip());
+        assertFalse(board.getCell(new Coordinate(0, 1)).hasShip());
+        assertTrue(board.getCell(new Coordinate(2, 3)).hasShip());
+        assertTrue(board.getCell(new Coordinate(3, 3)).hasShip());
+        assertEquals(Orientation.VERTICAL, destroyer.getOrientation());
+    }
+
+    @Test
+    void shouldRejectMoveWhenShipOverlapsAnother() {
+        Board board = new Board();
+        Destroyer firstDestroyer = new Destroyer();
+        Destroyer secondDestroyer = new Destroyer();
+
+        placementService.placeShip(board, firstDestroyer, new Coordinate(0, 0), Orientation.HORIZONTAL);
+        placementService.placeShip(board, secondDestroyer, new Coordinate(2, 0), Orientation.HORIZONTAL);
+
+        assertThrows(
+                InvalidPlacementException.class,
+                () -> placementService.moveShip(board, firstDestroyer, new Coordinate(2, 0), Orientation.HORIZONTAL)
+        );
+    }
+
+    @Test
+    void shouldAllowMoveIgnoringOwnPreviousCells() {
+        Board board = new Board();
+        Destroyer destroyer = new Destroyer();
+
+        placementService.placeShip(board, destroyer, new Coordinate(0, 0), Orientation.HORIZONTAL);
+
+        assertTrue(placementService.canPlaceShip(
+                board,
+                destroyer,
+                new Coordinate(0, 0),
+                Orientation.VERTICAL,
+                destroyer
+        ));
+    }
 }

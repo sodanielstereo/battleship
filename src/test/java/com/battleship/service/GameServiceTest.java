@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 
 import com.battleship.exception.InvalidGameStateException;
+import com.battleship.exception.InvalidPlacementException;
 import com.battleship.model.Game;
 import com.battleship.model.board.Coordinate;
 import com.battleship.model.enums.GamePhase;
@@ -105,6 +106,49 @@ class GameServiceTest {
         assertThrows(
                 InvalidGameStateException.class,
                 () -> gameService.machineShoots(game, new Coordinate(0, 0))
+        );
+    }
+
+    @Test
+    void shouldNotAllowPlacementAfterGameStarts() throws InvalidGameStateException {
+        Game game = gameService.createGame("Daniel");
+        gameService.startGame(game);
+
+        assertThrows(
+                InvalidGameStateException.class,
+                () -> gameService.placeShip(
+                        game,
+                        game.getHumanPlayer(),
+                        new Frigate(),
+                        new Coordinate(0, 0),
+                        Orientation.HORIZONTAL
+                )
+        );
+    }
+
+    @Test
+    void shouldNotAllowMovingShipAfterGameStarts() throws InvalidGameStateException {
+        Game game = gameService.createGame("Daniel");
+
+        gameService.placeShip(
+                game.getHumanPlayer(),
+                new Frigate(),
+                new Coordinate(0, 0),
+                Orientation.HORIZONTAL
+        );
+
+        Frigate frigate = (Frigate) game.getHumanPlayer().getFleet().get(0);
+        gameService.startGame(game);
+
+        assertThrows(
+                InvalidGameStateException.class,
+                () -> gameService.moveShip(
+                        game,
+                        game.getHumanPlayer(),
+                        frigate,
+                        new Coordinate(1, 1),
+                        Orientation.HORIZONTAL
+                )
         );
     }
 }
