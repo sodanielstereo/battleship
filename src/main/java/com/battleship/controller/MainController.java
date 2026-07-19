@@ -82,6 +82,7 @@ public class MainController {
     /**
      * Acción temporal. La carga real de partida se implementará en el PR de
      * persistencia.
+     *
      */
     @FXML
     private void onLoadGameClicked() {
