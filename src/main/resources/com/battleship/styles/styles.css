@@ -191,6 +191,11 @@
     -fx-text-fill: rgba(0, 0, 0, 0.45);
 }
 
+.option-checkbox {
+    -fx-font-size: 13px;
+    -fx-text-fill: #37474f;
+}
+
 .battle-footer {
     -fx-background-color: rgba(255, 255, 255, 0.85);
     -fx-border-color: #bbdefb;

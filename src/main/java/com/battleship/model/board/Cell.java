@@ -42,6 +42,11 @@ public class Cell implements Serializable {
         this.state = CellState.SHIP;
     }
 
+    public void clearShip() {
+        this.ship = null;
+        this.state = CellState.EMPTY;
+    }
+
     public boolean hasShip() {
         return ship != null;
     }

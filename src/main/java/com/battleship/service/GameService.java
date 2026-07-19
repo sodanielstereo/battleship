@@ -61,6 +61,68 @@ public class GameService {
     }
 
     /**
+     * Coloca un barco validando que la partida aún esté en fase de posicionamiento.
+     *
+     * @param game partida actual.
+     * @param player jugador propietario del barco.
+     * @param ship barco a colocar.
+     * @param startCoordinate coordenada inicial del barco.
+     * @param orientation orientación del barco.
+     */
+    public void placeShip(
+            Game game,
+            Player player,
+            Ship ship,
+            Coordinate startCoordinate,
+            Orientation orientation) throws InvalidGameStateException {
+
+        validatePlacementAllowed(game);
+        placeShip(player, ship, startCoordinate, orientation);
+    }
+
+    /**
+     * Reubica un barco ya colocado durante la fase de posicionamiento.
+     *
+     * @param game partida actual.
+     * @param player jugador propietario del barco.
+     * @param ship barco a reubicar.
+     * @param startCoordinate nueva coordenada inicial.
+     * @param orientation nueva orientación del barco.
+     */
+    public void moveShip(
+            Game game,
+            Player player,
+            Ship ship,
+            Coordinate startCoordinate,
+            Orientation orientation) throws InvalidGameStateException {
+
+        validatePlacementAllowed(game);
+
+        if (player == null) {
+            throw new InvalidPlacementException("El jugador no puede ser nulo.");
+        }
+
+        if (ship == null) {
+            throw new InvalidPlacementException("El barco no puede ser nulo.");
+        }
+
+        placementService.moveShip(player.getBoard(), ship, startCoordinate, orientation);
+    }
+
+    private void validatePlacementAllowed(Game game) throws InvalidGameStateException {
+        if (game == null) {
+            return;
+        }
+
+        GamePhase phase = game.getPhase();
+
+        if (phase != GamePhase.PLACEMENT && phase != GamePhase.PLAYER_POSITIONING_SHIPS) {
+            throw new InvalidGameStateException(
+                    "No se pueden modificar los barcos después de iniciar la partida.");
+        }
+    }
+
+    /**
      * Cambia la partida de fase de colocación a fase de juego.
      *
      * @param game partida actual.

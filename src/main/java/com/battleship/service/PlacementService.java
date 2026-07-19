@@ -55,6 +55,27 @@ public class PlacementService {
      * @return true si la posición es válida; false en caso contrario.
      */
     public boolean canPlaceShip(Board board, Ship ship, Coordinate startCoordinate, Orientation orientation) {
+        return canPlaceShip(board, ship, startCoordinate, orientation, null);
+    }
+
+    /**
+     * Indica si un barco puede ubicarse en el tablero, ignorando las celdas
+     * ocupadas por otro barco (util al reubicar una nave ya colocada).
+     *
+     * @param board tablero donde se desea ubicar.
+     * @param ship barco que se desea colocar.
+     * @param startCoordinate coordenada inicial.
+     * @param orientation orientación del barco.
+     * @param ignoredShip barco cuyas celdas se ignoran; null si no aplica.
+     * @return true si la posición es válida; false en caso contrario.
+     */
+    public boolean canPlaceShip(
+            Board board,
+            Ship ship,
+            Coordinate startCoordinate,
+            Orientation orientation,
+            Ship ignoredShip) {
+
         if (board == null || ship == null || startCoordinate == null || orientation == null) {
             return false;
         }
@@ -68,7 +89,11 @@ public class PlacementService {
 
             Cell cell = board.getCell(coordinate);
 
-            if (cell == null || cell.hasShip()) {
+            if (cell == null) {
+                return false;
+            }
+
+            if (cell.hasShip() && cell.getShip() != ignoredShip) {
                 return false;
             }
         }
@@ -97,6 +122,49 @@ public class PlacementService {
         for (Coordinate coordinate : positions) {
             board.getCell(coordinate).placeShip(ship);
         }
+    }
+
+    /**
+     * Reubica un barco ya colocado en el tablero.
+     *
+     * @param board tablero donde se moverá el barco.
+     * @param ship barco a reubicar.
+     * @param startCoordinate nueva coordenada inicial.
+     * @param orientation nueva orientación del barco.
+     */
+    public void moveShip(Board board, Ship ship, Coordinate startCoordinate, Orientation orientation) {
+        if (board == null || ship == null) {
+            throw new InvalidPlacementException("El tablero y el barco no pueden ser nulos.");
+        }
+
+        if (!canPlaceShip(board, ship, startCoordinate, orientation, ship)) {
+            throw new InvalidPlacementException("El barco no puede reubicarse en la posición indicada.");
+        }
+
+        removeShipFromBoard(board, ship);
+        placeShip(board, ship, startCoordinate, orientation);
+    }
+
+    /**
+     * Retira un barco del tablero sin eliminarlo de la flota del jugador.
+     *
+     * @param board tablero del jugador.
+     * @param ship barco a retirar.
+     */
+    public void removeShipFromBoard(Board board, Ship ship) {
+        if (board == null || ship == null) {
+            throw new InvalidPlacementException("El tablero y el barco no pueden ser nulos.");
+        }
+
+        for (Coordinate coordinate : ship.getPositions()) {
+            Cell cell = board.getCell(coordinate);
+
+            if (cell != null && cell.getShip() == ship) {
+                cell.clearShip();
+            }
+        }
+
+        ship.setPositions(List.of());
     }
 
     private void validatePlacementInput(Coordinate startCoordinate, int shipSize, Orientation orientation) {
