@@ -5,6 +5,7 @@ package com.battleship.model.enums;
  */
 public enum GamePhase {
     PLACEMENT,
+    PLAYER_POSITIONING_SHIPS,
     IN_PROGRESS,
     FINISHED
 }

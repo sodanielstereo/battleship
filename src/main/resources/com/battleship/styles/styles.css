@@ -121,6 +121,30 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.14), 10, 0, 0, 4);
 }
 
+.ship-panel {
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-background-radius: 14;
+    -fx-border-color: #bbdefb;
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+    -fx-padding: 18;
+    -fx-min-width: 250;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.14), 10, 0, 0, 4);
+}
+
+.ship-option {
+    -fx-background-color: #eef6ff;
+    -fx-border-color: #b0bec5;
+    -fx-border-width: 1;
+    -fx-padding: 6;
+    -fx-cursor: hand;
+}
+
+.ship-option:hover {
+    -fx-background-color: #d8ecff;
+    -fx-border-color: #1565c0;
+}
+
 .board-title-label {
     -fx-font-size: 19px;
     -fx-font-weight: bold;
@@ -132,8 +156,8 @@
 }
 
 .board-cell {
-    -fx-background-radius: 4;
-    -fx-border-radius: 4;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
     -fx-border-width: 1;
     -fx-border-color: #90a4ae;
 }
@@ -144,6 +168,22 @@
 
 .machine-board-cell {
     -fx-background-color: #c8e6c9;
+}
+
+.cell-ship {
+    -fx-background-color: #455a64;
+}
+
+.cell-water {
+    -fx-background-color: #4fc3f7;
+}
+
+.cell-hit {
+    -fx-background-color: #ef5350;
+}
+
+.cell-sunk {
+    -fx-background-color: #6d4c41;
 }
 
 .coordinate-label {
