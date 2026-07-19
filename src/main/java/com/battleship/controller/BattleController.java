@@ -569,11 +569,12 @@ public class BattleController {
                 marker.setMaxSize(CELL_SIZE, CELL_SIZE);
                 marker.setMouseTransparent(true);
 
+                double scale = 2.5;
                 ImageView shotImage = new ImageView(shotsSprite);
                 shotImage.setViewport(getShotSpriteViewport(state));
                 shotImage.setPreserveRatio(true);
-                shotImage.setFitWidth(CELL_SIZE);
-                shotImage.setFitHeight(CELL_SIZE);
+                shotImage.setFitWidth(CELL_SIZE * scale);
+                shotImage.setFitHeight(CELL_SIZE * scale);
                 shotImage.setMouseTransparent(true);
 
                 marker.getChildren().add(shotImage);
