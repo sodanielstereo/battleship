@@ -82,7 +82,6 @@ public class MainController {
     /**
      * Acción temporal. La carga real de partida se implementará en el PR de
      * persistencia.
-     *
      */
     @FXML
     private void onLoadGameClicked() {
@@ -97,7 +96,7 @@ public class MainController {
         battleController.initializeGame(game);
 
         Stage stage = (Stage) nicknameTextField.getScene().getWindow();
-        Scene scene = new Scene(root, 1000, 800);
+        Scene scene = new Scene(root, 1280, 720);
 
         stage.setScene(scene);
         stage.setTitle("Batalla Naval - Tableros");

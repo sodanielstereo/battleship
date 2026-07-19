@@ -162,11 +162,6 @@
     -fx-border-color: #90a4ae;
 }
 
-.board-cell:hover {
-    -fx-border-color: #263238;
-    -fx-cursor: hand;
-}
-
 .human-board-cell {
     -fx-background-color: #bbdefb;
 }
