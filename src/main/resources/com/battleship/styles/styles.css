@@ -138,12 +138,33 @@
     -fx-border-color: #90a4ae;
 }
 
+.board-cell:hover {
+    -fx-border-color: #263238;
+    -fx-cursor: hand;
+}
+
 .human-board-cell {
     -fx-background-color: #bbdefb;
 }
 
 .machine-board-cell {
     -fx-background-color: #c8e6c9;
+}
+
+.cell-ship {
+    -fx-background-color: #455a64;
+}
+
+.cell-water {
+    -fx-background-color: #4fc3f7;
+}
+
+.cell-hit {
+    -fx-background-color: #ef5350;
+}
+
+.cell-sunk {
+    -fx-background-color: #6d4c41;
 }
 
 .coordinate-label {
