@@ -63,6 +63,9 @@ public class BattleController {
 
     private static final String MAIN_VIEW_PATH = "/com/battleship/view/main-view.fxml";
     private static final String SHIPS_SPRITE_PATH = "/com/battleship/sprites/ships.png";
+    private static final String SHOTS_SPRITE_PATH = "/com/battleship/sprites/shoots_states.png";
+    private static final double SHOT_FRAME_WIDTH = 512;
+    private static final double SHOT_FRAME_HEIGHT = 1024;
     private static final String DRAG_MOVE_MARKER = "MOVE";
     private static final Duration MACHINE_TURN_DELAY = Duration.millis(650);
     private static final int CELL_SIZE = 34;
@@ -72,6 +75,7 @@ public class BattleController {
 
     private Game currentGame;
     private Image shipsSprite;
+    private Image shotsSprite;
     private Orientation currentOrientation;
     private Ship draggedShip;
     private boolean machineTurnRunning;
@@ -119,6 +123,7 @@ public class BattleController {
     public void initializeGame(Game game) {
         this.currentGame = game;
         this.shipsSprite = new Image(getClass().getResourceAsStream(SHIPS_SPRITE_PATH));
+        this.shotsSprite = new Image(getClass().getResourceAsStream(SHOTS_SPRITE_PATH));
 
         currentGame.setPhase(GamePhase.PLAYER_POSITIONING_SHIPS);
         loadInitialFleetCounts();
@@ -273,8 +278,9 @@ public class BattleController {
 
         if (revealShips) {
             overlayShipSprites(boardGrid, board);
-            overlayShotMarkers(boardGrid, board, cellStyleClass);
         }
+
+        overlayShotMarkers(boardGrid, board, cellStyleClass);
     }
 
     private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean revealShips, boolean enemyBoard) {
@@ -467,15 +473,15 @@ public class BattleController {
         CellState state = cell.getState();
 
         if (state == CellState.WATER) {
-            return "cell-water";
+            return revealShips ? "cell-empty" : "cell-water";
         }
 
         if (state == CellState.HIT) {
-            return "cell-hit";
+            return revealShips ? "cell-empty" : "cell-hit";
         }
 
         if (state == CellState.SUNK) {
-            return "cell-sunk";
+            return revealShips ? "cell-empty" : "cell-sunk";
         }
 
         if (state == CellState.SHIP && revealShips) {
@@ -556,14 +562,21 @@ public class BattleController {
 
             if (state == CellState.WATER || state == CellState.HIT || state == CellState.SUNK) {
                 Coordinate coordinate = cell.getCoordinate();
+
                 StackPane marker = new StackPane();
                 marker.setPrefSize(CELL_SIZE, CELL_SIZE);
                 marker.setMinSize(CELL_SIZE, CELL_SIZE);
                 marker.setMaxSize(CELL_SIZE, CELL_SIZE);
-                marker.getStyleClass().add("board-cell");
-                marker.getStyleClass().add(cellStyleClass);
-                marker.getStyleClass().add(resolveCellStateStyle(cell, true));
                 marker.setMouseTransparent(true);
+
+                ImageView shotImage = new ImageView(shotsSprite);
+                shotImage.setViewport(getShotSpriteViewport(state));
+                shotImage.setPreserveRatio(true);
+                shotImage.setFitWidth(CELL_SIZE);
+                shotImage.setFitHeight(CELL_SIZE);
+                shotImage.setMouseTransparent(true);
+
+                marker.getChildren().add(shotImage);
                 boardGrid.add(marker, coordinate.getColumn(), coordinate.getRow());
             }
         }
@@ -643,6 +656,15 @@ public class BattleController {
             case SUBMARINE -> new Rectangle2D(532, 276, 414, 114);
             case DESTROYER -> new Rectangle2D(483, 608, 210, 92);
             case FRIGATE -> new Rectangle2D(508, 910, 76, 48);
+        };
+    }
+
+    private Rectangle2D getShotSpriteViewport(CellState state) {
+        return switch (state) {
+            case WATER -> new Rectangle2D(0, 0, SHOT_FRAME_WIDTH, SHOT_FRAME_HEIGHT);
+            case HIT -> new Rectangle2D(SHOT_FRAME_WIDTH, 0, SHOT_FRAME_WIDTH, SHOT_FRAME_HEIGHT);
+            case SUNK -> new Rectangle2D(SHOT_FRAME_WIDTH * 2, 0, SHOT_FRAME_WIDTH, SHOT_FRAME_HEIGHT);
+            default -> null;
         };
     }
 
