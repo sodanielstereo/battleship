@@ -4,6 +4,7 @@ module com.battleship {
     requires transitive javafx.graphics;
 
     exports com.battleship.app;
+    exports com.battleship.controller;
     exports com.battleship.exception;
     exports com.battleship.model;
     exports com.battleship.model.board;
@@ -11,6 +12,7 @@ module com.battleship {
     exports com.battleship.model.history;
     exports com.battleship.model.player;
     exports com.battleship.model.ship;
+    exports com.battleship.persistence;
     exports com.battleship.service;
 
     opens com.battleship.controller to javafx.fxml;

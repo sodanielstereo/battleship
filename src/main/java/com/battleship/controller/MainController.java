@@ -1,8 +1,12 @@
 package com.battleship.controller;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import com.battleship.model.Game;
+import com.battleship.persistence.GameStatePersistenceService;
 import com.battleship.service.GameService;
 
 import javafx.fxml.FXML;
@@ -16,16 +20,16 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 /**
- * Controlador de la pantalla inicial del juego.
- *
- * Permite crear una partida básica a partir del nickname ingresado
- * y navegar hacia la pantalla de tableros.
+ * Controller class for the main view of the Battleship game. It handles user
+ * interactions for starting a new game or loading a saved game.
  */
 public class MainController {
 
     private static final String BATTLE_VIEW_PATH = "/com/battleship/view/battle-view.fxml";
+    private static final Path GAME_SAVE_PATH = Path.of("data", "game-state.ser");
 
     private final GameService gameService;
+    private final GameStatePersistenceService gameStatePersistenceService;
 
     @FXML
     private TextField nicknameTextField;
@@ -44,21 +48,23 @@ public class MainController {
 
     public MainController() {
         this.gameService = new GameService();
+        this.gameStatePersistenceService = new GameStatePersistenceService();
     }
 
-    /**
-     * Configuración inicial de la pantalla.
-     */
     @FXML
     private void initialize() {
-        loadGameButton.setDisable(true);
+        boolean savedGameExists = Files.exists(GAME_SAVE_PATH);
+
+        loadGameButton.setDisable(!savedGameExists);
         statusLabel.setText("Ingresa tu nickname para iniciar una nueva partida.");
-        gameInfoLabel.setText("No hay partida activa en esta sesión.");
+
+        if (savedGameExists) {
+            gameInfoLabel.setText("Hay una partida guardada disponible.");
+        } else {
+            gameInfoLabel.setText("No hay partida guardada todavía.");
+        }
     }
 
-    /**
-     * Crea una nueva partida y abre la pantalla inicial de tableros.
-     */
     @FXML
     private void onNewGameClicked() {
         String nickname = nicknameTextField.getText();
@@ -74,29 +80,36 @@ public class MainController {
         try {
             openBattleView(game);
         } catch (IOException exception) {
+            exception.printStackTrace();
             showWarning("Error al abrir la partida", "No fue posible cargar la vista de tableros.");
             statusLabel.setText("Error al cargar la pantalla de juego.");
         }
     }
 
-    /**
-     * Acción temporal. La carga real de partida se implementará en el PR de
-     * persistencia.
-     */
     @FXML
     private void onLoadGameClicked() {
-        showInformation("Cargar partida", "Esta opción se implementará en el PR de persistencia.");
+        try {
+            Game loadedGame = gameStatePersistenceService.loadGame(GAME_SAVE_PATH);
+            openBattleView(loadedGame);
+        } catch (FileNotFoundException exception) {
+            showWarning("Partida no encontrada", "No hay una partida guardada disponible.");
+            loadGameButton.setDisable(true);
+            gameInfoLabel.setText("No hay partida guardada todavía.");
+        } catch (IOException | ClassNotFoundException exception) {
+            showWarning("Error al cargar", "No fue posible cargar la partida guardada.");
+            statusLabel.setText("Error al cargar la partida.");
+        }
     }
 
     private void openBattleView(Game game) throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource(BATTLE_VIEW_PATH));
+        FXMLLoader loader = new FXMLLoader(MainController.class.getResource(BATTLE_VIEW_PATH));
         Parent root = loader.load();
 
         BattleController battleController = loader.getController();
         battleController.initializeGame(game);
 
         Stage stage = (Stage) nicknameTextField.getScene().getWindow();
-        Scene scene = new Scene(root, 1280, 720);
+        Scene scene = new Scene(root, 1000, 700);
 
         stage.setScene(scene);
         stage.setTitle("Batalla Naval - Tableros");
@@ -105,14 +118,6 @@ public class MainController {
 
     private void showWarning(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle("Batalla Naval");
-        alert.setHeaderText(title);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-
-    private void showInformation(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Batalla Naval");
         alert.setHeaderText(title);
         alert.setContentText(message);

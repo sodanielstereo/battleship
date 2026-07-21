@@ -201,3 +201,10 @@
     -fx-border-color: #bbdefb;
     -fx-border-width: 1 0 0 0;
 }
+.selected-ship-option {
+    -fx-background-color: #d7ecff;
+    -fx-border-color: #1976d2;
+    -fx-border-width: 2;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
