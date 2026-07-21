@@ -53,8 +53,7 @@ class PlacementServiceTest {
                 board,
                 destroyer,
                 new Coordinate(0, 9),
-                Orientation.HORIZONTAL
-        );
+                Orientation.HORIZONTAL);
 
         assertFalse(canPlace);
     }
@@ -69,8 +68,7 @@ class PlacementServiceTest {
                 board,
                 new Frigate(),
                 new Coordinate(0, 0),
-                Orientation.HORIZONTAL
-        );
+                Orientation.HORIZONTAL);
 
         assertFalse(canPlace);
     }
@@ -82,8 +80,7 @@ class PlacementServiceTest {
 
         assertThrows(
                 InvalidPlacementException.class,
-                () -> placementService.placeShip(board, destroyer, new Coordinate(0, 9), Orientation.HORIZONTAL)
-        );
+                () -> placementService.placeShip(board, destroyer, new Coordinate(0, 9), Orientation.HORIZONTAL));
     }
 
     @Test
@@ -112,8 +109,7 @@ class PlacementServiceTest {
 
         assertThrows(
                 InvalidPlacementException.class,
-                () -> placementService.moveShip(board, firstDestroyer, new Coordinate(2, 0), Orientation.HORIZONTAL)
-        );
+                () -> placementService.moveShip(board, firstDestroyer, new Coordinate(2, 0), Orientation.HORIZONTAL));
     }
 
     @Test
@@ -128,7 +124,6 @@ class PlacementServiceTest {
                 destroyer,
                 new Coordinate(0, 0),
                 Orientation.VERTICAL,
-                destroyer
-        ));
+                destroyer));
     }
 }
