@@ -847,6 +847,7 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
             statusLabel.setText("Tu disparo en " + formatCoordinate(coordinate) + ": " + describeShotResult(result));
 
             refreshView();
+            autoSaveGame();
             handleEndOrMachineTurn();
         } catch (InvalidGameStateException | InvalidShotException exception) {
             statusLabel.setText(exception.getMessage());
@@ -884,6 +885,7 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
             } finally {
                 machineTurnRunning = false;
                 refreshView();
+                autoSaveGame();
 
                 if (currentGame.getPhase() == GamePhase.FINISHED) {
                     showFinishedMessage();
@@ -901,6 +903,19 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
             statusLabel.setText("Ganaste la partida.");
         } else if (currentGame.getHumanPlayer().hasLost()) {
             statusLabel.setText("Perdiste la partida.");
+        }
+    }
+
+    /**
+     * Guarda automáticamente el estado del juego tras cada jugada
+     * (serialización del juego completo + archivo plano de estadísticas).
+     */
+    private void autoSaveGame() {
+        try {
+            gameStatePersistenceService.saveGame(currentGame, GAME_SAVE_PATH);
+            playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
+        } catch (IOException exception) {
+            System.err.println("No fue posible guardar la partida automáticamente: " + exception.getMessage());
         }
     }
 
