@@ -109,7 +109,7 @@ public class MainController {
         battleController.initializeGame(game);
 
         Stage stage = (Stage) nicknameTextField.getScene().getWindow();
-        Scene scene = new Scene(root, 1000, 700);
+        Scene scene = new Scene(root, 1200, 800);
 
         stage.setScene(scene);
         stage.setTitle("Batalla Naval - Tableros");
