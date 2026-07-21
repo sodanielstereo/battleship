@@ -186,9 +186,20 @@
     -fx-background-color: #6d4c41;
 }
 
-.coordinate-label {
-    -fx-font-size: 8px;
-    -fx-text-fill: rgba(0, 0, 0, 0.45);
+.board-header-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0b3558;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.board-header-label.left {
+    -fx-background-color: transparent;
+}
+
+.board-header-label.top {
+    -fx-background-color: transparent;
 }
 
 .option-checkbox {

@@ -42,6 +42,18 @@
       <padding>
         <Insets top="24" right="24" bottom="24" left="24"/>
       </padding>
+      <VBox fx:id="shipPanel"
+                        alignment="CENTER"
+                        spacing="12"
+                        styleClass="ship-panel">
+        <Label text="Naves disponibles"
+                               styleClass="board-title-label"/>
+        <Label text="Click derecho para rotar"
+                       styleClass="normal-label"/>
+        <VBox fx:id="shipSelectionBox"
+                              alignment="CENTER"
+                              spacing="10"/>
+      </VBox>
       <VBox alignment="CENTER"
                         spacing="12"
                         styleClass="board-card">
@@ -71,18 +83,6 @@
                                   hgap="0"
                                   vgap="0"
                                   styleClass="board-grid"/>
-      </VBox>
-      <VBox fx:id="shipPanel"
-                        alignment="CENTER"
-                        spacing="12"
-                        styleClass="ship-panel">
-        <Label text="Naves disponibles"
-                               styleClass="board-title-label"/>
-        <Label text="Click derecho para rotar"
-                       styleClass="normal-label"/>
-        <VBox fx:id="shipSelectionBox"
-                              alignment="CENTER"
-                              spacing="10"/>
       </VBox>
     </HBox>
   </center>

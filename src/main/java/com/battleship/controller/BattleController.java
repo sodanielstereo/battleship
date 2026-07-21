@@ -6,6 +6,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import com.battleship.exception.InvalidGameStateException;
@@ -146,6 +147,10 @@ public class BattleController {
             currentGame.setPhase(GamePhase.PLAYER_POSITIONING_SHIPS);
         }
 
+        if (currentGame.getMachinePlayer().getFleet().isEmpty()) {
+            placeMachineFleet();
+        }
+
         loadInitialFleetCounts();
 
         playerInfoLabel.setText(
@@ -191,10 +196,6 @@ public class BattleController {
         }
 
         try {
-            if (currentGame.getMachinePlayer().getFleet().isEmpty()) {
-                placeMachineFleet();
-            }
-
             gameService.startGame(currentGame);
             selectedShipType = null;
             statusLabel.setText("Selección confirmada. Dispara en el territorio enemigo.");
@@ -270,7 +271,7 @@ public class BattleController {
 
         buildBoard(humanBoardGrid, currentGame.getHumanPlayer().getBoard(), "human-board-cell", true, false);
 
-        boolean revealMachineShips = showMachineShips && currentGame.getPhase() != GamePhase.PLAYER_POSITIONING_SHIPS;
+        boolean revealMachineShips = showMachineShips && currentGame.getPhase() == GamePhase.PLAYER_POSITIONING_SHIPS;
         buildBoard(machineBoardGrid, currentGame.getMachinePlayer().getBoard(), "machine-board-cell",
                 revealMachineShips,
                 true);
@@ -283,12 +284,9 @@ public class BattleController {
         shipPanel.setManaged(positioningShips);
 
         confirmPlacementButton.setDisable(!positioningShips || !allHumanShipsPlaced());
-        showMachineShipsCheckBox.setDisable(positioningShips);
-
-        if (positioningShips) {
-            showMachineShipsCheckBox.setSelected(false);
-            showMachineShips = false;
-        }
+        showMachineShipsCheckBox.setDisable(!positioningShips);
+        showMachineShipsCheckBox.setVisible(positioningShips);
+        showMachineShipsCheckBox.setManaged(positioningShips);
 
         machineBoardGrid.setDisable(
                 currentGame.getPhase() != GamePhase.IN_PROGRESS
@@ -402,11 +400,33 @@ public class BattleController {
 
         boardGrid.getChildren().clear();
 
+        // Add column headers (A-J) at the top
+        for (int column = 0; column < Board.DEFAULT_SIZE; column++) {
+            Label headerLabel = new Label(String.valueOf((char) ('A' + column)));
+            headerLabel.getStyleClass().add("board-header-label");
+            StackPane headerCell = new StackPane(headerLabel);
+            headerCell.setPrefSize(CELL_SIZE, CELL_SIZE);
+            headerCell.setMinSize(CELL_SIZE, CELL_SIZE);
+            headerCell.setMaxSize(CELL_SIZE, CELL_SIZE);
+            headerCell.setAlignment(Pos.CENTER);
+            boardGrid.add(headerCell, column + 1, 0);
+        }
+
+        // Add row numbers (1-10) on the left and fill the board cells
         for (int row = 0; row < Board.DEFAULT_SIZE; row++) {
+            Label rowLabel = new Label(String.valueOf(row + 1));
+            rowLabel.getStyleClass().add("board-header-label");
+            StackPane rowHeaderCell = new StackPane(rowLabel);
+            rowHeaderCell.setPrefSize(CELL_SIZE, CELL_SIZE);
+            rowHeaderCell.setMinSize(CELL_SIZE, CELL_SIZE);
+            rowHeaderCell.setMaxSize(CELL_SIZE, CELL_SIZE);
+            rowHeaderCell.setAlignment(Pos.CENTER);
+            boardGrid.add(rowHeaderCell, 0, row + 1);
+
             for (int column = 0; column < Board.DEFAULT_SIZE; column++) {
                 Coordinate coordinate = new Coordinate(row, column);
                 StackPane cell = createBoardCell(board.getCell(coordinate), cellStyleClass, revealShips, enemyBoard);
-                boardGrid.add(cell, column, row);
+                boardGrid.add(cell, column + 1, row + 1);
             }
         }
 
@@ -417,7 +437,7 @@ public class BattleController {
         overlayShotMarkers(boardGrid, board);
     }
 
-    private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean revealShips, boolean enemyBoard) {
+private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean revealShips, boolean enemyBoard) {
         StackPane visualCell = new StackPane();
 
         visualCell.setPrefSize(CELL_SIZE, CELL_SIZE);
@@ -430,11 +450,6 @@ public class BattleController {
         visualCell.getStyleClass().add(resolveCellStateStyle(boardCell, revealShips));
 
         Coordinate coordinate = boardCell.getCoordinate();
-
-        Label coordinateLabel = new Label(String.valueOf(coordinate.getRow() + 1) + "," + (coordinate.getColumn() + 1));
-        coordinateLabel.getStyleClass().add("coordinate-label");
-
-        visualCell.getChildren().add(coordinateLabel);
 
         if (currentGame.getPhase() == GamePhase.PLAYER_POSITIONING_SHIPS && !enemyBoard) {
             configurePlacementDrop(visualCell, coordinate);
@@ -642,33 +657,51 @@ public class BattleController {
     }
 
     private void placeMachineFleet() {
-        placeDefaultFleet(
-                currentGame.getMachinePlayer(),
-                List.of(
-                        new ShipPlacement(new AircraftCarrier(), new Coordinate(0, 5), Orientation.VERTICAL),
-                        new ShipPlacement(new Submarine(), new Coordinate(3, 1), Orientation.HORIZONTAL),
-                        new ShipPlacement(new Submarine(), new Coordinate(5, 0), Orientation.VERTICAL),
-                        new ShipPlacement(new Destroyer(), new Coordinate(6, 6), Orientation.VERTICAL),
-                        new ShipPlacement(new Destroyer(), new Coordinate(8, 1), Orientation.HORIZONTAL),
-                        new ShipPlacement(new Destroyer(), new Coordinate(8, 5), Orientation.HORIZONTAL),
-                        new ShipPlacement(new Frigate(), new Coordinate(0, 0), Orientation.HORIZONTAL),
-                        new ShipPlacement(new Frigate(), new Coordinate(2, 9), Orientation.HORIZONTAL),
-                        new ShipPlacement(new Frigate(), new Coordinate(5, 9), Orientation.HORIZONTAL),
-                        new ShipPlacement(new Frigate(), new Coordinate(9, 9), Orientation.HORIZONTAL)));
-    }
+        Random random = new Random();
+        Player machinePlayer = currentGame.getMachinePlayer();
+        Board machineBoard = machinePlayer.getBoard();
 
-    private void placeDefaultFleet(Player player, List<ShipPlacement> placements) {
-        for (ShipPlacement placement : placements) {
-            try {
-                gameService.placeShip(
-                        currentGame,
-                        player,
-                        placement.ship(),
-                        placement.coordinate(),
-                        placement.orientation());
-            } catch (InvalidPlacementException | InvalidGameStateException exception) {
+        List<Ship> shipsToPlace = new java.util.ArrayList<>();
+        shipsToPlace.add(new AircraftCarrier());
+        shipsToPlace.add(new Submarine());
+        shipsToPlace.add(new Submarine());
+        shipsToPlace.add(new Destroyer());
+        shipsToPlace.add(new Destroyer());
+        shipsToPlace.add(new Destroyer());
+        shipsToPlace.add(new Frigate());
+        shipsToPlace.add(new Frigate());
+        shipsToPlace.add(new Frigate());
+        shipsToPlace.add(new Frigate());
+
+        for (Ship ship : shipsToPlace) {
+            boolean placed = false;
+            int attempts = 0;
+
+            while (!placed && attempts < 1000) {
+                int row = random.nextInt(Board.DEFAULT_SIZE);
+                int col = random.nextInt(Board.DEFAULT_SIZE);
+                Orientation orientation = random.nextBoolean()
+                        ? Orientation.HORIZONTAL
+                        : Orientation.VERTICAL;
+
+                Coordinate startCoordinate = new Coordinate(row, col);
+
+                try {
+                    gameService.placeShip(
+                            currentGame,
+                            machinePlayer,
+                            ship,
+                            startCoordinate,
+                            orientation);
+                    placed = true;
+                } catch (InvalidPlacementException | InvalidGameStateException e) {
+                    attempts++;
+                }
+            }
+
+            if (!placed) {
                 throw new InvalidPlacementException(
-                        "No fue posible ubicar la flota por defecto de la máquina.");
+                        "No fue posible ubicar aleatoriamente la flota de la máquina.");
             }
         }
     }
@@ -728,7 +761,7 @@ public class BattleController {
         Coordinate start = positions.get(0);
         StackPane shipContainer = createShipSpriteContainer(ship);
 
-        boardGrid.add(shipContainer, start.getColumn(), start.getRow());
+boardGrid.add(shipContainer, start.getColumn() + 1, start.getRow() + 1);
 
         if (ship.getOrientation() == Orientation.HORIZONTAL) {
             GridPane.setColumnSpan(shipContainer, ship.getSize());
@@ -794,7 +827,7 @@ public class BattleController {
                 shotImage.setMouseTransparent(true);
 
                 marker.getChildren().add(shotImage);
-                boardGrid.add(marker, coordinate.getColumn(), coordinate.getRow());
+boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
             }
         }
     }
