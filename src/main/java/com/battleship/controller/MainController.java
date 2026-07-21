@@ -90,6 +90,14 @@ public class MainController {
     private void onLoadGameClicked() {
         try {
             Game loadedGame = gameStatePersistenceService.loadGame(GAME_SAVE_PATH);
+
+            if (loadedGame.isFinished()) {
+                showWarning("Partida finalizada",
+                        "La partida guardada ya terminó. Se iniciará una nueva partida.");
+                statusLabel.setText("La partida guardada ya terminó. Inicia una partida nueva.");
+                return;
+            }
+
             openBattleView(loadedGame);
         } catch (FileNotFoundException exception) {
             showWarning("Partida no encontrada", "No hay una partida guardada disponible.");
