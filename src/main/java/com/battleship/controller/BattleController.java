@@ -23,11 +23,8 @@ import com.battleship.model.enums.Orientation;
 import com.battleship.model.enums.ShipType;
 import com.battleship.model.enums.ShotResult;
 import com.battleship.model.enums.Turn;
-import com.battleship.model.ship.AircraftCarrier;
-import com.battleship.model.ship.Destroyer;
-import com.battleship.model.ship.Frigate;
 import com.battleship.model.ship.Ship;
-import com.battleship.model.ship.Submarine;
+import com.battleship.model.ship.factory.ShipFactoryRegistry;
 import com.battleship.persistence.GameStatePersistenceService;
 import com.battleship.persistence.PlayerStatsFileService;
 import com.battleship.service.GameService;
@@ -844,16 +841,16 @@ public class BattleController {
      */
     private void placeMachineFleet() {
         List<Ship> machineFleet = List.of(
-                new AircraftCarrier(),
-                new Submarine(),
-                new Submarine(),
-                new Destroyer(),
-                new Destroyer(),
-                new Destroyer(),
-                new Frigate(),
-                new Frigate(),
-                new Frigate(),
-                new Frigate());
+                ShipFactoryRegistry.createShip(ShipType.AIRCRAFT_CARRIER),
+                ShipFactoryRegistry.createShip(ShipType.SUBMARINE),
+                ShipFactoryRegistry.createShip(ShipType.SUBMARINE),
+                ShipFactoryRegistry.createShip(ShipType.DESTROYER),
+                ShipFactoryRegistry.createShip(ShipType.DESTROYER),
+                ShipFactoryRegistry.createShip(ShipType.DESTROYER),
+                ShipFactoryRegistry.createShip(ShipType.FRIGATE),
+                ShipFactoryRegistry.createShip(ShipType.FRIGATE),
+                ShipFactoryRegistry.createShip(ShipType.FRIGATE),
+                ShipFactoryRegistry.createShip(ShipType.FRIGATE));
 
         for (Ship ship : machineFleet) {
             placeMachineShipRandomly(ship);
@@ -891,18 +888,14 @@ public class BattleController {
     }
 
     /**
-     * Creates a concrete ship instance from a ship type.
+     * Creates a concrete ship instance from a ship type using the
+     * {@link ShipFactoryRegistry} (Factory Method pattern).
      *
      * @param shipType type of ship to create.
      * @return concrete ship instance.
      */
     private Ship createShip(ShipType shipType) {
-        return switch (shipType) {
-            case AIRCRAFT_CARRIER -> new AircraftCarrier();
-            case SUBMARINE -> new Submarine();
-            case DESTROYER -> new Destroyer();
-            case FRIGATE -> new Frigate();
-        };
+        return ShipFactoryRegistry.createShip(shipType);
     }
 
     /**
