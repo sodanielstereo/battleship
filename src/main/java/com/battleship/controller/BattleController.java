@@ -71,13 +71,16 @@ public class BattleController {
 
     private static final String MAIN_VIEW_PATH = "/com/battleship/view/main-view.fxml";
     private static final String SHIPS_SPRITE_PATH = "/com/battleship/sprites/ships.png";
-    private static final String SHOTS_SPRITE_PATH = "/com/battleship/sprites/shoots_states.png";
+    private static final String SHOTS_HIT_SPRITE_PATH = "/com/battleship/sprites/shots_hit.png";
+    private static final String SHOTS_WATER_SPRITE_PATH = "/com/battleship/sprites/shots_water.png";
+    private static final String SHOTS_SUNK_SPRITE_PATH = "/com/battleship/sprites/shots_sunk.png";
 
     private static final Path GAME_SAVE_PATH = Path.of("data", "game-state.ser");
     private static final Path PLAYER_STATS_PATH = Path.of("data", "player-stats.txt");
 
-    private static final double SHOT_FRAME_WIDTH = 512;
-    private static final double SHOT_FRAME_HEIGHT = 1024;
+    private static final int SHOT_HIT_SPRITE_SIZE = 80;
+    private static final int SHOT_WATER_SPRITE_SIZE = 128;
+    private static final int SHOT_SUNK_SPRITE_SIZE = 96;
 
     private static final String DRAG_MOVE_MARKER = "MOVE";
     private static final long MACHINE_TURN_DELAY_MILLIS = 650;
@@ -91,7 +94,9 @@ public class BattleController {
 
     private Game currentGame;
     private Image shipsSprite;
-    private Image shotsSprite;
+    private Image shotsSpriteHit;
+    private Image shotsSpriteWater;
+    private Image shotsSpriteSunk;
     private Orientation currentOrientation;
     private ShipType selectedShipType;
     private Ship draggedShip;
@@ -148,7 +153,9 @@ public class BattleController {
     public void initializeGame(Game game) {
         this.currentGame = game;
         this.shipsSprite = new Image(getClass().getResourceAsStream(SHIPS_SPRITE_PATH));
-        this.shotsSprite = new Image(getClass().getResourceAsStream(SHOTS_SPRITE_PATH));
+        this.shotsSpriteHit = new Image(getClass().getResourceAsStream(SHOTS_HIT_SPRITE_PATH));
+        this.shotsSpriteWater = new Image(getClass().getResourceAsStream(SHOTS_WATER_SPRITE_PATH));
+        this.shotsSpriteSunk = new Image(getClass().getResourceAsStream(SHOTS_SUNK_SPRITE_PATH));
 
         if (currentGame.getPhase() == GamePhase.PLACEMENT) {
             currentGame.setPhase(GamePhase.PLAYER_POSITIONING_SHIPS);
@@ -901,7 +908,7 @@ public class BattleController {
      */
     private String resolveCellStateStyle(Cell cell, boolean revealShips) {
         CellState state = cell.getState();
-
+        /** disabled for stetics
         if (state == CellState.WATER) {
             return revealShips ? "cell-empty" : "cell-water";
         }
@@ -917,7 +924,7 @@ public class BattleController {
         if (state == CellState.SHIP && revealShips) {
             return "cell-empty";
         }
-
+        **/
         return "cell-empty";
     }
 
@@ -1024,10 +1031,22 @@ public class BattleController {
                 marker.setMinSize(CELL_SIZE, CELL_SIZE);
                 marker.setMaxSize(CELL_SIZE, CELL_SIZE);
                 marker.setMouseTransparent(true);
+                ImageView shotImage;
 
-                double scale = 2.5;
+                double scale = 0.8;
+                if (state == CellState.WATER) {
+                    shotImage = new ImageView(shotsSpriteWater);
+                }
+                else if (state == CellState.HIT) {
+                    shotImage = new ImageView(shotsSpriteHit);;
+                }
+                else if (state == CellState.SUNK) {
+                    shotImage = new ImageView(shotsSpriteSunk);
+                }
+                else {
+                    return;
+                }
 
-                ImageView shotImage = new ImageView(shotsSprite);
                 shotImage.setViewport(getShotSpriteViewport(state));
                 shotImage.setPreserveRatio(true);
                 shotImage.setFitWidth(CELL_SIZE * scale);
@@ -1217,9 +1236,9 @@ public class BattleController {
      */
     private Rectangle2D getShotSpriteViewport(CellState state) {
         return switch (state) {
-            case WATER -> new Rectangle2D(0, 0, SHOT_FRAME_WIDTH, SHOT_FRAME_HEIGHT);
-            case HIT -> new Rectangle2D(SHOT_FRAME_WIDTH, 0, SHOT_FRAME_WIDTH, SHOT_FRAME_HEIGHT);
-            case SUNK -> new Rectangle2D(SHOT_FRAME_WIDTH * 2, 0, SHOT_FRAME_WIDTH, SHOT_FRAME_HEIGHT);
+            case WATER -> new Rectangle2D(0, 0, SHOT_WATER_SPRITE_SIZE, SHOT_WATER_SPRITE_SIZE);
+            case HIT -> new Rectangle2D(0, 0, SHOT_HIT_SPRITE_SIZE, SHOT_HIT_SPRITE_SIZE);
+            case SUNK -> new Rectangle2D(0, 0, SHOT_SUNK_SPRITE_SIZE, SHOT_SUNK_SPRITE_SIZE);
             default -> null;
         };
     }
