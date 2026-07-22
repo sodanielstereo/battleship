@@ -14,6 +14,7 @@ module com.battleship {
     exports com.battleship.model.ship;
     exports com.battleship.persistence;
     exports com.battleship.service;
+    exports com.battleship.strategy;
 
     opens com.battleship.controller to javafx.fxml;
 }
