@@ -1,10 +1,10 @@
 package com.battleship.app;
 
 /**
- * Clase lanzadora del proyecto.
- *
- * Esta clase permite iniciar la aplicación JavaFX desde entornos
- * donde puede haber conflictos con el arranque directo de Application.
+ * Launcher class to start the JavaFX application.
+ * This class is necessary to launch the application from a JAR file or from
+ * certain IDEs that do not support JavaFX directly.
+ * It delegates the launch to the MainApplication class.
  */
 public class Launcher {
 
