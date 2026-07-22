@@ -21,8 +21,11 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 /**
- * Controller class for the main view of the Battleship game. It handles user
- * interactions for starting a new game or loading a saved game.
+ * Controller for the main screen of the Battleship application.
+ *
+ * It handles the initial user flow: validating the nickname, creating a new game,
+ * loading a serialized game state, showing the instructions dialog, and navigating
+ * to the battle screen.
  */
 public class MainController {
 
@@ -47,11 +50,20 @@ public class MainController {
     @FXML
     private Label gameInfoLabel;
 
+    /**
+     * Creates the main controller and initializes the services required by the start screen.
+     */
     public MainController() {
         this.gameService = new GameService();
         this.gameStatePersistenceService = new GameStatePersistenceService();
     }
 
+    /**
+     * Initializes the main screen after the FXML file is loaded.
+     *
+     * The method enables or disables the load button depending on whether a serialized
+     * game exists and updates the status labels shown to the player.
+     */
     @FXML
     private void initialize() {
         boolean savedGameExists = Files.exists(GAME_SAVE_PATH);
@@ -66,6 +78,12 @@ public class MainController {
         }
     }
 
+    /**
+     * Handles the new game button.
+     *
+     * The method validates the nickname, creates a new game through the service layer,
+     * and opens the battle screen if the game can be initialized successfully.
+     */
     @FXML
     private void onNewGameClicked() {
         String nickname = nicknameTextField.getText();
@@ -87,6 +105,12 @@ public class MainController {
         }
     }
 
+    /**
+     * Handles the load game button.
+     *
+     * The method reads the serialized game state from disk, rejects finished saved
+     * games, and opens the battle screen with the loaded match.
+     */
     @FXML
     private void onLoadGameClicked() {
         try {
@@ -110,6 +134,10 @@ public class MainController {
         }
     }
 
+    /**
+     * Shows the instructions dialog with the basic rules, placement controls, turn
+     * rules, and persistence behavior.
+     */
     @FXML
     private void onInstructionsClicked() {
         String instructions = """
@@ -141,6 +169,12 @@ public class MainController {
         showInformation("Instrucciones", instructions);
     }
 
+    /**
+     * Loads the battle view and transfers the current game to its controller.
+     *
+     * @param game game instance that will be rendered and played on the battle screen.
+     * @throws IOException if the battle FXML file cannot be loaded.
+     */
     private void openBattleView(Game game) throws IOException {
         FXMLLoader loader = new FXMLLoader(MainController.class.getResource(BATTLE_VIEW_PATH));
         Parent root = loader.load();
@@ -157,6 +191,12 @@ public class MainController {
         stage.show();
     }
 
+    /**
+     * Displays a warning dialog.
+     *
+     * @param title dialog header text.
+     * @param message dialog content text.
+     */
     private void showWarning(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle("Batalla Naval");
@@ -165,6 +205,12 @@ public class MainController {
         alert.showAndWait();
     }
 
+    /**
+     * Displays an information dialog.
+     *
+     * @param title dialog header text.
+     * @param message dialog content text.
+     */
     private void showInformation(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Batalla Naval");

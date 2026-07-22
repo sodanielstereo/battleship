@@ -1,7 +1,10 @@
 package com.battleship.model.enums;
 
 /**
- * Represents the visible or logical state of a cell on the board.
+ * Represents the logical state of a board cell.
+ *
+ * The state is used both by the game services and by the JavaFX layer to decide
+ * which visual style or sprite should be displayed.
  */
 public enum CellState {
     EMPTY,

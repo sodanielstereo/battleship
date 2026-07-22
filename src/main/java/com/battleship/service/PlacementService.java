@@ -11,18 +11,21 @@ import com.battleship.model.enums.Orientation;
 import com.battleship.model.ship.Ship;
 
 /**
- * Servicio encargado de calcular, validar y realizar la colocación de barcos.
+ * Service responsible for calculating, validating, placing, moving, and removing ships on a board.
+ *
+ * The service contains the board-positioning rules and keeps them independent
+ * from JavaFX and from the general game orchestration service.
  */
 public class PlacementService {
 
     /**
-     * Calcula las coordenadas que ocuparía un barco según su posición inicial,
-     * tamaño y orientación.
+     * Calculates every coordinate that would be occupied by a ship.
      *
-     * @param startCoordinate coordenada inicial.
-     * @param shipSize tamaño del barco.
-     * @param orientation orientación del barco.
-     * @return lista de coordenadas ocupadas por el barco.
+     * @param startCoordinate first coordinate of the ship.
+     * @param shipSize number of cells occupied by the ship.
+     * @param orientation direction used to extend the ship from the start coordinate.
+     * @return list of occupied coordinates.
+     * @throws InvalidPlacementException if the coordinate, size, or orientation is invalid.
      */
     public List<Coordinate> calculatePositions(Coordinate startCoordinate, int shipSize, Orientation orientation) {
         validatePlacementInput(startCoordinate, shipSize, orientation);
@@ -46,28 +49,32 @@ public class PlacementService {
     }
 
     /**
-     * Indica si un barco puede ubicarse en el tablero.
+     * Checks whether a ship can be placed on a board.
      *
-     * @param board tablero donde se desea ubicar.
-     * @param ship barco que se desea colocar.
-     * @param startCoordinate coordenada inicial.
-     * @param orientation orientación del barco.
-     * @return true si la posición es válida; false en caso contrario.
+     * @param board board where the ship would be placed.
+     * @param ship ship to place.
+     * @param startCoordinate first coordinate of the ship.
+     * @param orientation placement orientation.
+     * @return {@code true} if the ship can be placed; otherwise {@code false}.
      */
     public boolean canPlaceShip(Board board, Ship ship, Coordinate startCoordinate, Orientation orientation) {
         return canPlaceShip(board, ship, startCoordinate, orientation, null);
     }
 
     /**
-     * Indica si un barco puede ubicarse en el tablero, ignorando las celdas
-     * ocupadas por otro barco (util al reubicar una nave ya colocada).
+     * Checks whether a ship can be placed while ignoring the cells occupied by
+     * another ship.
      *
-     * @param board tablero donde se desea ubicar.
-     * @param ship barco que se desea colocar.
-     * @param startCoordinate coordenada inicial.
-     * @param orientation orientación del barco.
-     * @param ignoredShip barco cuyas celdas se ignoran; null si no aplica.
-     * @return true si la posición es válida; false en caso contrario.
+     * This overload is used when a ship is being moved or rotated. The current
+     * cells of the same ship can be ignored so the validation does not reject
+     * its own previous position.
+     *
+     * @param board board where the ship would be placed.
+     * @param ship ship to place.
+     * @param startCoordinate first coordinate of the ship.
+     * @param orientation placement orientation.
+     * @param ignoredShip ship whose cells must be ignored, or {@code null} when no ship should be ignored.
+     * @return {@code true} if the ship can be placed; otherwise {@code false}.
      */
     public boolean canPlaceShip(
             Board board,
@@ -102,12 +109,13 @@ public class PlacementService {
     }
 
     /**
-     * Coloca un barco en el tablero.
+     * Places a ship on the board after validating the requested position.
      *
-     * @param board tablero donde se colocará el barco.
-     * @param ship barco a colocar.
-     * @param startCoordinate coordenada inicial.
-     * @param orientation orientación del barco.
+     * @param board board where the ship will be placed.
+     * @param ship ship to place.
+     * @param startCoordinate first coordinate of the ship.
+     * @param orientation placement orientation.
+     * @throws InvalidPlacementException if the ship cannot be placed.
      */
     public void placeShip(Board board, Ship ship, Coordinate startCoordinate, Orientation orientation) {
         if (!canPlaceShip(board, ship, startCoordinate, orientation)) {
@@ -125,12 +133,13 @@ public class PlacementService {
     }
 
     /**
-     * Reubica un barco ya colocado en el tablero.
+     * Moves an already placed ship to a new valid position.
      *
-     * @param board tablero donde se moverá el barco.
-     * @param ship barco a reubicar.
-     * @param startCoordinate nueva coordenada inicial.
-     * @param orientation nueva orientación del barco.
+     * @param board board where the ship is currently placed.
+     * @param ship ship to move.
+     * @param startCoordinate new first coordinate.
+     * @param orientation new orientation.
+     * @throws InvalidPlacementException if the board, ship, or new position is invalid.
      */
     public void moveShip(Board board, Ship ship, Coordinate startCoordinate, Orientation orientation) {
         if (board == null || ship == null) {
@@ -146,10 +155,11 @@ public class PlacementService {
     }
 
     /**
-     * Retira un barco del tablero sin eliminarlo de la flota del jugador.
+     * Removes a ship from the board without deleting it from the player fleet.
      *
-     * @param board tablero del jugador.
-     * @param ship barco a retirar.
+     * @param board board that currently contains the ship.
+     * @param ship ship to remove.
+     * @throws InvalidPlacementException if the board or ship is {@code null}.
      */
     public void removeShipFromBoard(Board board, Ship ship) {
         if (board == null || ship == null) {
@@ -167,6 +177,14 @@ public class PlacementService {
         ship.setPositions(List.of());
     }
 
+    /**
+     * Validates the base information required to calculate a ship placement.
+     *
+     * @param startCoordinate first coordinate of the ship.
+     * @param shipSize number of occupied cells.
+     * @param orientation placement orientation.
+     * @throws InvalidPlacementException if any required value is invalid.
+     */
     private void validatePlacementInput(Coordinate startCoordinate, int shipSize, Orientation orientation) {
         if (startCoordinate == null) {
             throw new InvalidPlacementException("La coordenada inicial no puede ser nula.");

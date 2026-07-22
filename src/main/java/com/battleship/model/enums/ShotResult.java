@@ -1,7 +1,7 @@
 package com.battleship.model.enums;
 
 /**
- * Representa el resultado de un disparo.
+ * Represents the result produced after resolving a shot.
  */
 public enum ShotResult {
     WATER,

@@ -10,14 +10,21 @@ import java.nio.file.Path;
 import com.battleship.model.Game;
 
 /**
- * Service in charge of persisting the game state to a file and loading it back
- * using serialization.
- * 
- * GameStatePersistenceService
+ * Service responsible for saving and loading the complete game state.
+ *
+ * This class uses Java object serialization to persist a {@link Game} instance in
+ * a binary file. It is used to resume an unfinished match from the main screen.
  */
-
 public class GameStatePersistenceService {
 
+    /**
+     * Serializes a game state into the provided file path.
+     *
+     * @param game game state to persist.
+     * @param filePath destination file path.
+     * @throws IOException if the file cannot be created or written.
+     * @throws IllegalArgumentException if the game or file path is {@code null}.
+     */
     public void saveGame(Game game, Path filePath) throws IOException {
         if (game == null) {
             throw new IllegalArgumentException("La partida no puede ser nula.");
@@ -34,6 +41,15 @@ public class GameStatePersistenceService {
         }
     }
 
+    /**
+     * Loads a serialized game state from disk.
+     *
+     * @param filePath source file path.
+     * @return loaded game state.
+     * @throws IOException if the file does not exist, cannot be read, or does not contain a valid game.
+     * @throws ClassNotFoundException if the serialized class definition cannot be resolved.
+     * @throws IllegalArgumentException if the file path is {@code null}.
+     */
     public Game loadGame(Path filePath) throws IOException, ClassNotFoundException {
         if (filePath == null) {
             throw new IllegalArgumentException("La ruta del archivo no puede ser nula.");
@@ -54,6 +70,12 @@ public class GameStatePersistenceService {
         }
     }
 
+    /**
+     * Creates the parent directory for a persistence file when it does not exist.
+     *
+     * @param filePath file path whose parent directory must be created.
+     * @throws IOException if the directory cannot be created.
+     */
     private void createParentDirectory(Path filePath) throws IOException {
         Path parentDirectory = filePath.getParent();
 

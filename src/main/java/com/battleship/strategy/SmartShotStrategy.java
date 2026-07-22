@@ -11,12 +11,23 @@ import com.battleship.model.board.Coordinate;
 import com.battleship.model.enums.CellState;
 
 /**
- * Smart strategy: the machine fires intelligently by targeting adjacent cells
+ * Smart machine shooting strategy.
+ *
+ * It scans the target board looking for hit cells and prioritizes adjacent cells
+ * that have not been attacked yet. If no useful candidate exists, it falls back to
+ * the shuffled queue of available shots.
  */
 public class SmartShotStrategy implements ShotStrategy {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Selects the next shot using hit-neighbor prioritization.
+     *
+     * @param targetBoard opponent board used to find previous hits.
+     * @param availableShots queue of coordinates that have not been selected yet.
+     * @return selected coordinate, or {@code null} when the queue is empty.
+     */
     @Override
     public Coordinate selectShot(Board targetBoard, Queue<Coordinate> availableShots) {
         if (availableShots == null || availableShots.isEmpty()) {
@@ -39,6 +50,13 @@ public class SmartShotStrategy implements ShotStrategy {
         return availableShots.poll();
     }
 
+    /**
+     * Finds valid neighboring coordinates around cells already marked as hit.
+     *
+     * @param targetBoard opponent board to scan.
+     * @param availableShots remaining coordinates that can still be selected.
+     * @return candidate coordinates that should be prioritized.
+     */
     private List<Coordinate> findTargetCandidates(Board targetBoard, Queue<Coordinate> availableShots) {
         List<Coordinate> candidates = new ArrayList<>();
 
@@ -56,6 +74,14 @@ public class SmartShotStrategy implements ShotStrategy {
         return candidates;
     }
 
+    /**
+     * Adds the four orthogonal neighbors of a hit coordinate when they are valid.
+     *
+     * @param targetBoard opponent board.
+     * @param availableShots remaining coordinates that can still be selected.
+     * @param candidates current candidate list.
+     * @param coordinate hit coordinate used as center.
+     */
     private void addValidNeighbors(
             Board targetBoard,
             Queue<Coordinate> availableShots,
@@ -72,6 +98,14 @@ public class SmartShotStrategy implements ShotStrategy {
                 new Coordinate(coordinate.getRow(), coordinate.getColumn() + 1));
     }
 
+    /**
+     * Adds one coordinate to the candidate list when it is valid and still available.
+     *
+     * @param targetBoard opponent board.
+     * @param availableShots remaining coordinates that can still be selected.
+     * @param candidates current candidate list.
+     * @param coordinate coordinate to evaluate.
+     */
     private void addCandidate(
             Board targetBoard,
             Queue<Coordinate> availableShots,

@@ -63,19 +63,14 @@ import javafx.stage.Stage;
 /**
  * Controller for the battle screen.
  *
- * 
- * This controller connects the JavaFX view with the game model and services.
- * It handles ship selection, ship placement, ship movement, right-click
- * rotation, manual placement confirmation, shots, machine turns, autosave, and
- * navigation back to the initial screen.
- * 
+ * This controller connects the JavaFX view with the game model and service layer.
+ * It handles ship selection, ship placement, ship movement, right-click rotation,
+ * manual placement confirmation, shooting, machine turns, autosave, sprite
+ * rendering, and navigation back to the initial screen.
  *
- * 
- * The machine turn is executed through a JavaFX {@link Task}, which runs the
- * game logic in a background thread and updates the user interface when the
- * task
- * finishes.
- * 
+ * The machine turn is executed through a JavaFX {@link javafx.concurrent.Task},
+ * so the user interface remains responsive while the artificial player waits and
+ * selects its next shot.
  */
 public class BattleController {
 
@@ -1115,6 +1110,12 @@ public class BattleController {
         statusLabel.setText("La máquina está pensando...");
 
         Task<MachineShotResult> machineTurnTask = new Task<>() {
+            /**
+             * Runs the machine shot calculation in the background thread.
+             *
+             * @return coordinate and result selected by the machine turn.
+             * @throws Exception if the thread is interrupted or the service cannot execute the shot.
+             */
             @Override
             protected MachineShotResult call() throws Exception {
                 Thread.sleep(MACHINE_TURN_DELAY_MILLIS);

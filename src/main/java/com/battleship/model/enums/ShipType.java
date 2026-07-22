@@ -1,7 +1,9 @@
 package com.battleship.model.enums;
 
 /**
- * Representa los tipos de barcos permitidos en Batalla Naval.
+ * Represents the ship types available in the game.
+ *
+ * Each type stores a display name and the number of cells occupied by the ship.
  */
 public enum ShipType {
     AIRCRAFT_CARRIER("Portaaviones", 4),
@@ -17,10 +19,20 @@ public enum ShipType {
         this.size = size;
     }
 
+    /**
+     * Returns the user-facing ship name.
+     *
+     * @return display name shown in the interface.
+     */
     public String getDisplayName() {
         return displayName;
     }
 
+    /**
+     * Returns the number of cells occupied by this ship type.
+     *
+     * @return ship size.
+     */
     public int getSize() {
         return size;
     }
