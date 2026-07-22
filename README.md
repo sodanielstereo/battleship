@@ -193,3 +193,6 @@ mvn javafx:run
 The project currently compiles, runs and passes all unit tests.
 
 It includes core gameplay, JavaFX interface, persistence, custom exceptions, data structures, Strategy pattern, background machine turns, custom visual assets and unit testing.
+
+## Source Icons
+The icons for shooting, hitting, and sinking were taken from the page: https://icons8.com
