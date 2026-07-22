@@ -1,7 +1,7 @@
 package com.battleship.model.enums;
 
 /**
- * Represents to whom it corresponds to play.
+ * Represents which player is allowed to play the current turn.
  */
 public enum Turn {
     HUMAN,

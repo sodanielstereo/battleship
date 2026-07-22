@@ -1,7 +1,7 @@
 package com.battleship.model.enums;
 
 /**
- * Represents the current phase of the game.
+ * Represents the current lifecycle phase of a Battleship match.
  */
 public enum GamePhase {
     PLACEMENT,

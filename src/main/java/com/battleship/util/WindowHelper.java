@@ -8,17 +8,23 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 /**
- * Utility class for applying common window configuration to the application.
+ * Utility class for common JavaFX window configuration.
+ *
+ * It centralizes application icon loading and fixed maximized sizing so controllers
+ * and the main application do not duplicate stage configuration logic.
  */
 public final class WindowHelper {
 
     private static final String ICON_PATH = "/com/battleship/icons/icon.png";
 
+    /**
+     * Prevents instantiation of this utility class.
+     */
     private WindowHelper() {
     }
 
     /**
-     * Applies the application icon and fixed maximized size to the stage.
+     * Applies all shared window settings to a stage.
      *
      * @param stage application stage to configure.
      */
@@ -28,7 +34,7 @@ public final class WindowHelper {
     }
 
     /**
-     * Sets the application icon on the given stage.
+     * Loads the application icon from resources and assigns it to the stage.
      *
      * @param stage application stage to configure.
      */
@@ -43,10 +49,8 @@ public final class WindowHelper {
     /**
      * Sets the stage to the maximum visible screen size and disables resizing.
      *
-     * <p>
-     * This uses the visual bounds of the screen, so the window respects the
-     * operating system taskbar instead of using real fullscreen mode.
-     * </p>
+     * The visual bounds are used so the window respects the operating system taskbar
+     * instead of entering exclusive fullscreen mode.
      *
      * @param stage application stage to configure.
      */

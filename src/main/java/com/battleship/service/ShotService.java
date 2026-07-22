@@ -8,16 +8,24 @@ import com.battleship.model.enums.ShotResult;
 import com.battleship.model.ship.Ship;
 
 /**
- * Servicio encargado de resolver los disparos sobre un tablero.
+ * Service responsible for resolving shots against a target board.
+ *
+ * It validates the selected coordinate, updates the affected cell, registers hits
+ * on ships, and marks the complete ship as sunk when all its positions were hit.
  */
 public class ShotService {
 
     /**
-     * Realiza un disparo sobre el tablero indicado.
+     * Executes a shot against a target board.
      *
-     * @param targetBoard tablero del jugador atacado.
-     * @param coordinate coordenada del disparo.
-     * @return resultado del disparo.
+     * The method returns {@link ShotResult#WATER} when no ship is present,
+     * {@link ShotResult#HIT} when a ship is hit but still alive, and
+     * {@link ShotResult#SUNK} when the shot sinks the complete ship.
+     *
+     * @param targetBoard board that receives the shot.
+     * @param coordinate coordinate selected for the shot.
+     * @return result produced by the shot.
+     * @throws InvalidShotException if the board or coordinate is invalid, or if the cell was already shot.
      */
     public ShotResult shoot(Board targetBoard, Coordinate coordinate) {
         validateShotInput(targetBoard, coordinate);
@@ -45,12 +53,25 @@ public class ShotService {
         return ShotResult.HIT;
     }
 
+    /**
+     * Marks every occupied coordinate of a ship as sunk.
+     *
+     * @param board board that contains the ship.
+     * @param ship ship that has just been sunk.
+     */
     private void markShipAsSunk(Board board, Ship ship) {
         for (Coordinate coordinate : ship.getPositions()) {
             board.getCell(coordinate).markAsSunk();
         }
     }
 
+    /**
+     * Validates the board and coordinate before resolving a shot.
+     *
+     * @param targetBoard board that receives the shot.
+     * @param coordinate coordinate selected for the shot.
+     * @throws InvalidShotException if the board is null, the coordinate is null, or the coordinate is outside the board.
+     */
     private void validateShotInput(Board targetBoard, Coordinate coordinate) {
         if (targetBoard == null) {
             throw new InvalidShotException("El tablero objetivo no puede ser nulo.");
