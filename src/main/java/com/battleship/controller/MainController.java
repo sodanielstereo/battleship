@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import com.battleship.model.Game;
 import com.battleship.persistence.GameStatePersistenceService;
 import com.battleship.service.GameService;
+import com.battleship.util.WindowHelper;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -109,6 +110,37 @@ public class MainController {
         }
     }
 
+    @FXML
+    private void onInstructionsClicked() {
+        String instructions = """
+                Objetivo:
+                Hunde toda la flota de la máquina antes de que la máquina hunda la tuya.
+
+                Cómo posicionar tus naves:
+                1. Selecciona una nave disponible con click izquierdo.
+                2. Cambia su orientación con click derecho.
+                3. Ubícala en tu tablero con click izquierdo.
+                4. Puedes reubicar o rotar tus naves antes de confirmar.
+                5. Cuando todas estén ubicadas, presiona Confirmar selección.
+
+                Cómo jugar:
+                1. Dispara haciendo click en el tablero enemigo.
+                2. Si el disparo cae al agua, el turno pasa a la máquina.
+                3. Si el disparo toca o hunde una nave, conservas el turno.
+                4. La máquina juega en su propio turno usando una estrategia de disparo.
+                5. Gana quien hunda primero toda la flota enemiga.
+
+                Guardado:
+                Puedes guardar la partida desde la pantalla de batalla y cargarla luego desde el inicio.
+                También cuenta con un sistema de guardado automático que guarda la partida al interrumpir la ejecución del programa.
+
+                Aviso:
+                La máquina no hace trampa, pero es muy buena jugando. ¡Buena suerte!
+                """;
+
+        showInformation("Instrucciones", instructions);
+    }
+
     private void openBattleView(Game game) throws IOException {
         FXMLLoader loader = new FXMLLoader(MainController.class.getResource(BATTLE_VIEW_PATH));
         Parent root = loader.load();
@@ -120,12 +152,21 @@ public class MainController {
         Scene scene = new Scene(root, 1200, 800);
 
         stage.setScene(scene);
+        WindowHelper.configureStage(stage);
         stage.setTitle("Batalla Naval - Tableros");
         stage.show();
     }
 
     private void showWarning(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Batalla Naval");
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showInformation(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Batalla Naval");
         alert.setHeaderText(title);
         alert.setContentText(message);

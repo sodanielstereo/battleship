@@ -1,221 +1,381 @@
+/* =========================================================
+   Palette:
+   Jet Black   #162E3B
+   Shadow Grey #202632
+   ========================================================= */
+
+/* ---------- Global ---------- */
+
 .root {
-    -fx-font-family: "Arial";
-    -fx-background-color: linear-gradient(to bottom, #e7f3ff, #ffffff);
+    -fx-font-family: "Titillium Web";
+    -fx-background-color: #162E3B;
+}
+
+/* ---------- Backgrounds ---------- */
+
+.main-root {
+    -fx-background-color: #101820;
+    -fx-background-image: url("../backgrounds/main-background.png");
+    -fx-background-size: cover;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.battle-root {
+    -fx-background-color: #101820;
+    -fx-background-image: url("../backgrounds/battle-background.png");
+    -fx-background-size: cover;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+/* ---------- Cards ---------- */
+
+.start-card,
+.main-card {
+    -fx-background-color: rgba(32, 38, 50, 0.94);
+    -fx-background-radius: 28;
+    -fx-border-color: #3A4962;
+    -fx-border-radius: 28;
+    -fx-border-width: 2;
+    -fx-padding: 42 48 42 48;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.62), 30, 0.32, 0, 10);
+}
+
+.board-card,
+.ship-panel {
+    -fx-background-color: rgba(32, 38, 50, 0.94);
+    -fx-background-radius: 20;
+    -fx-border-color: #3A4962;
+    -fx-border-radius: 20;
+    -fx-border-width: 2;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.48), 20, 0.27, 0, 7);
+}
+
+.ship-panel,
+.human-board-card {
+    -fx-background-color: rgba(22, 46, 59, 0.94);
+    -fx-border-color: #31566A;
+}
+
+.machine-board-card {
+    -fx-background-color: rgba(32, 38, 50, 0.94);
+    -fx-border-color: #3A4962;
+}
+
+.board-card:hover,
+.ship-panel:hover,
+.start-card:hover {
+    -fx-border-color: #00D9FF;
+}
+
+/* ---------- Header / Footer ---------- */
+
+.battle-header {
+    -fx-background-color: rgba(22, 46, 59, 0.92);
+    -fx-border-color: #223A49;
+    -fx-border-width: 0 0 2 0;
+}
+
+.boards-container {
+    -fx-background-color: rgba(16, 24, 32, 0.82);
+}
+
+.battle-footer {
+    -fx-background-color: rgba(16, 24, 32, 0.93);
+    -fx-border-color: #223A49;
+    -fx-border-width: 2 0 0 0;
+}
+
+/* ---------- Fonts ---------- */
+
+.title-label,
+.battle-title-label {
+    -fx-font-family: "Orbitron";
+    -fx-font-weight: bold;
+    -fx-text-fill: #F8FAFC;
 }
 
 .title-label {
-    -fx-font-size: 40px;
+    -fx-font-size: 48px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 217, 255, 0.55), 13, 0.32, 0, 0);
+}
+
+.battle-title-label {
+    -fx-font-size: 36px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 217, 255, 0.45), 10, 0.28, 0, 0);
+}
+
+.board-title-label {
+    -fx-font-family: "Orbitron";
+    -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0b3558;
+    -fx-text-fill: #7DD3FC;
+    -fx-effect: dropshadow(gaussian, rgba(0, 217, 255, 0.28), 7, 0.22, 0, 0);
+}
+
+.subtitle-label,
+.normal-label,
+.status-label,
+.game-info-label,
+.battle-info-label {
+    -fx-font-family: "Titillium Web";
+    -fx-font-weight: bold;
 }
 
 .subtitle-label {
     -fx-font-size: 16px;
-    -fx-text-fill: #315c7c;
-}
-
-.section-title-label {
-    -fx-font-size: 22px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #0b3558;
+    -fx-text-fill: #7DD3FC;
 }
 
 .normal-label {
-    -fx-font-size: 14px;
-    -fx-text-fill: #37474f;
+    -fx-font-size: 15px;
+    -fx-text-fill: #E2E8F0;
 }
 
 .status-label {
     -fx-font-size: 14px;
-    -fx-text-fill: #0d47a1;
+    -fx-text-fill: #00D9FF;
 }
 
 .game-info-label {
-    -fx-font-size: 13px;
-    -fx-text-fill: #455a64;
-}
-
-.start-card {
-    -fx-background-color: rgba(255, 255, 255, 0.92);
-    -fx-background-radius: 14;
-    -fx-border-color: #bbdefb;
-    -fx-border-radius: 14;
-    -fx-border-width: 1;
-    -fx-padding: 28;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 12, 0, 0, 4);
-    -fx-max-width: 520;
-}
-
-.nickname-field {
     -fx-font-size: 14px;
-    -fx-padding: 9 12 9 12;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
-    -fx-border-color: #90caf9;
-}
-
-.primary-button {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-padding: 10 24 10 24;
-    -fx-background-radius: 8;
-    -fx-background-color: #1565c0;
-    -fx-text-fill: white;
-    -fx-cursor: hand;
-}
-
-.primary-button:hover {
-    -fx-background-color: #0d47a1;
-}
-
-.secondary-button {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-padding: 10 24 10 24;
-    -fx-background-radius: 8;
-    -fx-background-color: #78909c;
-    -fx-text-fill: white;
-    -fx-cursor: hand;
-}
-
-.secondary-button:hover {
-    -fx-background-color: #546e7a;
-}
-
-.secondary-button:disabled {
-    -fx-opacity: 0.55;
-}
-.battle-root {
-    -fx-font-family: "Arial";
-    -fx-background-color: linear-gradient(to bottom, #d8ecff, #ffffff);
-}
-
-.battle-header {
-    -fx-background-color: rgba(255, 255, 255, 0.9);
-    -fx-border-color: #bbdefb;
-    -fx-border-width: 0 0 1 0;
-}
-
-.battle-title-label {
-    -fx-font-size: 32px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #0b3558;
+    -fx-text-fill: #94A3B8;
 }
 
 .battle-info-label {
     -fx-font-size: 14px;
-    -fx-text-fill: #315c7c;
+    -fx-text-fill: #B8C9D6;
 }
 
-.boards-container {
-    -fx-background-color: transparent;
+/* ---------- Text field ---------- */
+
+.text-field {
+    -fx-font-family: "Titillium Web";
+    -fx-font-weight: bold;
+    -fx-background-color: rgba(16, 24, 32, 0.94);
+    -fx-text-fill: #F8FAFC;
+    -fx-prompt-text-fill: #94A3B8;
+    -fx-background-radius: 18;
+    -fx-border-color: #38BDF8;
+    -fx-border-radius: 18;
+    -fx-border-width: 1.8;
+    -fx-padding: 12 16 12 16;
+    -fx-font-size: 15px;
 }
 
-.board-card {
-    -fx-background-color: rgba(255, 255, 255, 0.94);
-    -fx-background-radius: 14;
-    -fx-border-color: #bbdefb;
-    -fx-border-radius: 14;
-    -fx-border-width: 1;
-    -fx-padding: 20;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.14), 10, 0, 0, 4);
+.text-field:focused {
+    -fx-border-color: #00D9FF;
+    -fx-effect: dropshadow(gaussian, rgba(0, 217, 255, 0.60), 16, 0.35, 0, 0);
 }
 
-.ship-panel {
-    -fx-background-color: rgba(255, 255, 255, 0.94);
-    -fx-background-radius: 14;
-    -fx-border-color: #bbdefb;
-    -fx-border-radius: 14;
-    -fx-border-width: 1;
-    -fx-padding: 18;
-    -fx-min-width: 250;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.14), 10, 0, 0, 4);
-}
+/* ---------- Buttons ---------- */
 
-.ship-option {
-    -fx-background-color: #eef6ff;
-    -fx-border-color: #b0bec5;
-    -fx-border-width: 1;
-    -fx-padding: 6;
+.button {
+    -fx-font-family: "Titillium Web";
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
     -fx-cursor: hand;
 }
 
-.ship-option:hover {
-    -fx-background-color: #d8ecff;
-    -fx-border-color: #1565c0;
+.primary-button {
+    -fx-background-color: linear-gradient(to bottom, #00D9FF, #0284C7);
+    -fx-text-fill: #F8FAFC;
+    -fx-background-radius: 22;
+    -fx-border-color: #7DD3FC;
+    -fx-border-radius: 22;
+    -fx-border-width: 1.5;
+    -fx-padding: 12 30 12 30;
+    -fx-effect: dropshadow(gaussian, rgba(0, 217, 255, 0.48), 16, 0.36, 0, 5);
 }
 
-.board-title-label {
-    -fx-font-size: 19px;
+.primary-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #38BDF8, #0369A1);
+    -fx-border-color: #BAE6FD;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
+
+.secondary-button {
+    -fx-background-color: linear-gradient(to bottom, #3A4962, #202632);
+    -fx-text-fill: #F8FAFC;
+    -fx-background-radius: 22;
+    -fx-border-color: #64748B;
+    -fx-border-radius: 22;
+    -fx-border-width: 1.5;
+    -fx-padding: 12 30 12 30;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.52), 14, 0.30, 0, 5);
+}
+
+.secondary-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #4C5F7A, #2E4057);
+    -fx-border-color: #94A3B8;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
+
+.instructions-button {
+    -fx-font-family: "Titillium Web";
     -fx-font-weight: bold;
-    -fx-text-fill: #0b3558;
+    -fx-background-color: linear-gradient(to bottom, #3A4962, #162E3B);
+    -fx-text-fill: #F8FAFC;
+    -fx-font-size: 15px;
+    -fx-background-radius: 22;
+    -fx-border-color: #00D9FF;
+    -fx-border-radius: 22;
+    -fx-border-width: 1.5;
+    -fx-padding: 11 30 11 30;
+    -fx-effect: dropshadow(gaussian, rgba(0, 217, 255, 0.35), 14, 0.34, 0, 4);
 }
 
-.board-grid {
-    -fx-padding: 8;
+.instructions-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #00D9FF, #0284C7);
+    -fx-border-color: #BAE6FD;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.instructions-button:disabled {
+    -fx-opacity: 0.38;
+    -fx-effect: none;
+    -fx-cursor: default;
+}
+
+/* ---------- Board ---------- */
+
+.board-header-label {
+    -fx-font-family: "Chakra Petch";
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #D8E6F0;
 }
 
 .board-cell {
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-border-width: 1;
-    -fx-border-color: #90a4ae;
 }
 
 .human-board-cell {
-    -fx-background-color: #bbdefb;
+    -fx-background-color: #162E3B;
+    -fx-border-color: #3C6A7E;
 }
 
 .machine-board-cell {
-    -fx-background-color: #c8e6c9;
-}
-
-.cell-ship {
-    -fx-background-color: #455a64;
+    -fx-background-color: #202632;
+    -fx-border-color: #516179;
 }
 
 .cell-water {
-    -fx-background-color: #4fc3f7;
+    -fx-background-color: #0B7285;
+    -fx-border-color: #38BDF8;
 }
 
 .cell-hit {
-    -fx-background-color: #ef5350;
+    -fx-background-color: #F97316;
+    -fx-border-color: #FACC15;
 }
 
 .cell-sunk {
-    -fx-background-color: #6d4c41;
+    -fx-background-color: #991B1B;
+    -fx-border-color: #EF4444;
 }
 
-.board-header-label {
+/* ---------- Ships ---------- */
+
+.ship-option {
+    -fx-background-color: rgba(16, 24, 32, 0.94);
+    -fx-background-radius: 14;
+    -fx-border-color: #31566A;
+    -fx-border-radius: 14;
+    -fx-border-width: 1.5;
+    -fx-padding: 8;
+    -fx-cursor: hand;
+}
+
+.ship-option:hover {
+    -fx-background-color: #1A3A4A;
+    -fx-border-color: #00D9FF;
+}
+
+.selected-ship-option {
+    -fx-background-color: #0E4054;
+    -fx-border-color: #00D9FF;
+    -fx-border-width: 2.5;
+    -fx-effect: dropshadow(gaussian, rgba(0, 217, 255, 0.48), 16, 0.35, 0, 0);
+}
+
+.ship-option .normal-label,
+.ship-option .label {
+    -fx-font-family: "Chakra Petch";
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0b3558;
-    -fx-background-color: transparent;
-    -fx-padding: 0;
+    -fx-text-fill: #F8FAFC;
 }
 
-.board-header-label.left {
-    -fx-background-color: transparent;
-}
+/* ---------- Checkbox ---------- */
 
-.board-header-label.top {
-    -fx-background-color: transparent;
-}
-
-.option-checkbox {
+.check-box {
+    -fx-font-family: "Titillium Web";
+    -fx-font-weight: bold;
+    -fx-text-fill: #E2E8F0;
     -fx-font-size: 13px;
-    -fx-text-fill: #37474f;
 }
 
-.battle-footer {
-    -fx-background-color: rgba(255, 255, 255, 0.85);
-    -fx-border-color: #bbdefb;
-    -fx-border-width: 1 0 0 0;
+.check-box .box {
+    -fx-background-color: #101820;
+    -fx-border-color: #38BDF8;
+    -fx-border-width: 1.2;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
 }
-.selected-ship-option {
-    -fx-background-color: #d7ecff;
-    -fx-border-color: #1976d2;
+
+.check-box:selected .mark {
+    -fx-background-color: #00D9FF;
+}
+/* =========================================================
+   Board Cell Hover Highlight
+   ========================================================= */
+
+.board-cell {
+    -fx-cursor: hand;
+}
+
+.board-cell:hover {
+    -fx-background-color: #12394A;
+    -fx-border-color: #00D9FF;
     -fx-border-width: 2;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-effect:
+        dropshadow(gaussian, rgba(0, 217, 255, 0.65), 12, 0.35, 0, 0);
+}
+
+/* Hover específico para el tablero del jugador */
+.human-board-cell:hover {
+    -fx-background-color: #1A4A5C;
+    -fx-border-color: #00D9FF;
+}
+
+/* Hover específico para el tablero enemigo */
+.machine-board-cell:hover {
+    -fx-background-color: #293447;
+    -fx-border-color: #00D9FF;
+}
+
+/* Mantiene prioridad visual cuando la celda ya fue disparada */
+.cell-water:hover {
+    -fx-background-color: #0EA5B7;
+    -fx-border-color: #7DD3FC;
+}
+
+.cell-hit:hover {
+    -fx-background-color: #FB923C;
+    -fx-border-color: #FACC15;
+}
+
+.cell-sunk:hover {
+    -fx-background-color: #B91C1C;
+    -fx-border-color: #F87171;
 }
