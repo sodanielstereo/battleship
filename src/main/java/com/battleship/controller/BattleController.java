@@ -1,6 +1,7 @@
 package com.battleship.controller;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.LinkedHashSet;
@@ -22,7 +23,6 @@ import com.battleship.model.enums.Orientation;
 import com.battleship.model.enums.ShipType;
 import com.battleship.model.enums.ShotResult;
 import com.battleship.model.enums.Turn;
-import com.battleship.model.player.Player;
 import com.battleship.model.ship.AircraftCarrier;
 import com.battleship.model.ship.Destroyer;
 import com.battleship.model.ship.Frigate;
@@ -32,7 +32,7 @@ import com.battleship.persistence.GameStatePersistenceService;
 import com.battleship.persistence.PlayerStatsFileService;
 import com.battleship.service.GameService;
 
-import javafx.animation.PauseTransition;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -59,10 +59,23 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
 /**
- * Controlador de la pantalla de batalla.
+ * Controller for the battle screen.
+ *
+ * 
+ * This controller connects the JavaFX view with the game model and services.
+ * It handles ship selection, ship placement, ship movement, right-click
+ * rotation, manual placement confirmation, shots, machine turns, autosave, and
+ * navigation back to the initial screen.
+ * 
+ *
+ * 
+ * The machine turn is executed through a JavaFX {@link Task}, which runs the
+ * game logic in a background thread and updates the user interface when the
+ * task
+ * finishes.
+ * 
  */
 public class BattleController {
 
@@ -77,13 +90,15 @@ public class BattleController {
     private static final double SHOT_FRAME_HEIGHT = 1024;
 
     private static final String DRAG_MOVE_MARKER = "MOVE";
-    private static final Duration MACHINE_TURN_DELAY = Duration.millis(650);
+    private static final long MACHINE_TURN_DELAY_MILLIS = 650;
     private static final int CELL_SIZE = 34;
+    private static final int RANDOM_PLACEMENT_ATTEMPTS = 300;
 
     private final GameService gameService;
     private final GameStatePersistenceService gameStatePersistenceService;
     private final PlayerStatsFileService playerStatsFileService;
     private final Map<ShipType, Integer> remainingShips;
+    private final Random random;
 
     private Game currentGame;
     private Image shipsSprite;
@@ -124,19 +139,23 @@ public class BattleController {
     @FXML
     private CheckBox showMachineShipsCheckBox;
 
+    /**
+     * Creates the battle controller and initializes local services and state.
+     */
     public BattleController() {
         this.gameService = new GameService();
         this.gameStatePersistenceService = new GameStatePersistenceService();
         this.playerStatsFileService = new PlayerStatsFileService();
         this.remainingShips = new EnumMap<>(ShipType.class);
+        this.random = new Random();
         this.currentOrientation = Orientation.HORIZONTAL;
         this.showMachineShips = false;
     }
 
     /**
-     * Recibe la partida creada o cargada desde la pantalla inicial.
+     * Initializes the battle screen with a created or loaded game.
      *
-     * @param game partida actual.
+     * @param game game received from the initial screen.
      */
     public void initializeGame(Game game) {
         this.currentGame = game;
@@ -167,7 +186,8 @@ public class BattleController {
     }
 
     /**
-     * Muestra u oculta las naves del oponente en su tablero.
+     * Handles the checkbox used to reveal or hide the machine fleet during the
+     * placement phase.
      */
     @FXML
     private void onShowMachineShipsToggled() {
@@ -176,7 +196,7 @@ public class BattleController {
     }
 
     /**
-     * Confirma la ubicación de las naves del jugador e inicia la partida.
+     * Confirms the human fleet placement and starts the battle.
      */
     @FXML
     private void onConfirmPlacementClicked() {
@@ -199,15 +219,16 @@ public class BattleController {
             gameService.startGame(currentGame);
             selectedShipType = null;
             statusLabel.setText("Selección confirmada. Dispara en el territorio enemigo.");
+            autosaveGameState();
             refreshView();
-        } catch (InvalidPlacementException | InvalidGameStateException exception) {
+        } catch (InvalidGameStateException exception) {
             statusLabel.setText("No fue posible iniciar la batalla: " + exception.getMessage());
         }
     }
 
     /**
-     * Guarda la partida actual usando serialización y guarda estadísticas básicas
-     * en archivo plano.
+     * Saves the current game state using serialization and stores basic player
+     * statistics in a flat file.
      */
     @FXML
     private void onSaveGameClicked() {
@@ -217,6 +238,13 @@ public class BattleController {
         }
 
         try {
+            if (currentGame.getPhase() == GamePhase.FINISHED) {
+                playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
+                Files.deleteIfExists(GAME_SAVE_PATH);
+                statusLabel.setText("La partida finalizada fue registrada y no quedará como partida cargable.");
+                return;
+            }
+
             gameStatePersistenceService.saveGame(currentGame, GAME_SAVE_PATH);
             playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
             statusLabel.setText("Partida guardada correctamente.");
@@ -226,7 +254,7 @@ public class BattleController {
     }
 
     /**
-     * Regresa a la pantalla inicial.
+     * Returns to the initial screen.
      */
     @FXML
     private void onBackToStartClicked() {
@@ -245,6 +273,15 @@ public class BattleController {
         }
     }
 
+    /**
+     * Loads the number of remaining ships that can still be placed by the human
+     * player.
+     *
+     * 
+     * If the game was loaded from a saved file, already placed ships are
+     * discounted from the initial fleet count.
+     * 
+     */
     private void loadInitialFleetCounts() {
         remainingShips.clear();
 
@@ -264,6 +301,9 @@ public class BattleController {
         }
     }
 
+    /**
+     * Refreshes labels, boards, panels, checkboxes, and button states.
+     */
     private void refreshView() {
         phaseInfoLabel.setText(
                 "Fase actual: " + describePhase(currentGame.getPhase())
@@ -284,6 +324,7 @@ public class BattleController {
         shipPanel.setManaged(positioningShips);
 
         confirmPlacementButton.setDisable(!positioningShips || !allHumanShipsPlaced());
+        saveGameButton.setDisable(currentGame == null);
         showMachineShipsCheckBox.setDisable(!positioningShips);
         showMachineShipsCheckBox.setVisible(positioningShips);
         showMachineShipsCheckBox.setManaged(positioningShips);
@@ -294,6 +335,9 @@ public class BattleController {
                         || machineTurnRunning);
     }
 
+    /**
+     * Rebuilds the list of ships available for placement.
+     */
     private void buildShipSelection() {
         shipSelectionBox.getChildren().clear();
 
@@ -303,6 +347,12 @@ public class BattleController {
         }
     }
 
+    /**
+     * Creates a visual row for one ship type in the available ships panel.
+     *
+     * @param shipType ship type represented by the row.
+     * @return row with sprite preview and remaining count.
+     */
     private HBox createShipOption(ShipType shipType) {
         int remaining = remainingShips.getOrDefault(shipType, 0);
 
@@ -340,6 +390,12 @@ public class BattleController {
         return row;
     }
 
+    /**
+     * Handles left-click and right-click actions on a ship option.
+     *
+     * @param event    mouse event.
+     * @param shipType ship type selected in the panel.
+     */
     private void handleShipOptionClick(MouseEvent event, ShipType shipType) {
         if (currentGame.getPhase() != GamePhase.PLAYER_POSITIONING_SHIPS) {
             return;
@@ -363,6 +419,9 @@ public class BattleController {
         }
     }
 
+    /**
+     * Rotates the currently selected ship type before placement.
+     */
     private void rotateSelectedShip() {
         if (selectedShipType == null) {
             statusLabel.setText("Selecciona una nave para rotarla.");
@@ -378,12 +437,21 @@ public class BattleController {
         refreshView();
     }
 
+    /**
+     * Toggles the current orientation between horizontal and vertical.
+     */
     private void toggleCurrentOrientation() {
         currentOrientation = currentOrientation == Orientation.HORIZONTAL
                 ? Orientation.VERTICAL
                 : Orientation.HORIZONTAL;
     }
 
+    /**
+     * Configures the ship image displayed in the available ships panel.
+     *
+     * @param shipImage image view to configure.
+     * @param shipType  ship type used to select the sprite viewport.
+     */
     private void configureShipPreview(ImageView shipImage, ShipType shipType) {
         shipImage.setViewport(getSpriteViewport(shipType));
         shipImage.setPreserveRatio(true);
@@ -391,6 +459,16 @@ public class BattleController {
         shipImage.setRotate(0);
     }
 
+    /**
+     * Builds a board grid with coordinate headers, cells, ship sprites, and shot
+     * markers.
+     *
+     * @param boardGrid      grid pane where the board is rendered.
+     * @param board          model board to render.
+     * @param cellStyleClass base CSS class for the board cells.
+     * @param revealShips    whether ships should be visible.
+     * @param enemyBoard     whether this board belongs to the machine.
+     */
     private void buildBoard(
             GridPane boardGrid,
             Board board,
@@ -400,35 +478,8 @@ public class BattleController {
 
         boardGrid.getChildren().clear();
 
-        // Add column headers (A-J) at the top
-        for (int column = 0; column < Board.DEFAULT_SIZE; column++) {
-            Label headerLabel = new Label(String.valueOf((char) ('A' + column)));
-            headerLabel.getStyleClass().add("board-header-label");
-            StackPane headerCell = new StackPane(headerLabel);
-            headerCell.setPrefSize(CELL_SIZE, CELL_SIZE);
-            headerCell.setMinSize(CELL_SIZE, CELL_SIZE);
-            headerCell.setMaxSize(CELL_SIZE, CELL_SIZE);
-            headerCell.setAlignment(Pos.CENTER);
-            boardGrid.add(headerCell, column + 1, 0);
-        }
-
-        // Add row numbers (1-10) on the left and fill the board cells
-        for (int row = 0; row < Board.DEFAULT_SIZE; row++) {
-            Label rowLabel = new Label(String.valueOf(row + 1));
-            rowLabel.getStyleClass().add("board-header-label");
-            StackPane rowHeaderCell = new StackPane(rowLabel);
-            rowHeaderCell.setPrefSize(CELL_SIZE, CELL_SIZE);
-            rowHeaderCell.setMinSize(CELL_SIZE, CELL_SIZE);
-            rowHeaderCell.setMaxSize(CELL_SIZE, CELL_SIZE);
-            rowHeaderCell.setAlignment(Pos.CENTER);
-            boardGrid.add(rowHeaderCell, 0, row + 1);
-
-            for (int column = 0; column < Board.DEFAULT_SIZE; column++) {
-                Coordinate coordinate = new Coordinate(row, column);
-                StackPane cell = createBoardCell(board.getCell(coordinate), cellStyleClass, revealShips, enemyBoard);
-                boardGrid.add(cell, column + 1, row + 1);
-            }
-        }
+        addColumnHeaders(boardGrid);
+        addRowsAndCells(boardGrid, board, cellStyleClass, revealShips, enemyBoard);
 
         if (revealShips) {
             overlayShipSprites(boardGrid, board);
@@ -437,7 +488,77 @@ public class BattleController {
         overlayShotMarkers(boardGrid, board);
     }
 
-private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean revealShips, boolean enemyBoard) {
+    /**
+     * Adds column headers from A to J.
+     *
+     * @param boardGrid grid where headers are added.
+     */
+    private void addColumnHeaders(GridPane boardGrid) {
+        for (int column = 0; column < Board.DEFAULT_SIZE; column++) {
+            Label headerLabel = new Label(String.valueOf((char) ('A' + column)));
+            headerLabel.getStyleClass().add("board-header-label");
+
+            StackPane headerCell = createHeaderCell(headerLabel);
+            boardGrid.add(headerCell, column + 1, 0);
+        }
+    }
+
+    /**
+     * Adds row headers and board cells.
+     *
+     * @param boardGrid      grid where rows and cells are added.
+     * @param board          model board to render.
+     * @param cellStyleClass base CSS class for cells.
+     * @param revealShips    whether ships should be visible.
+     * @param enemyBoard     whether this board belongs to the machine.
+     */
+    private void addRowsAndCells(
+            GridPane boardGrid,
+            Board board,
+            String cellStyleClass,
+            boolean revealShips,
+            boolean enemyBoard) {
+
+        for (int row = 0; row < Board.DEFAULT_SIZE; row++) {
+            Label rowLabel = new Label(String.valueOf(row + 1));
+            rowLabel.getStyleClass().add("board-header-label");
+
+            StackPane rowHeaderCell = createHeaderCell(rowLabel);
+            boardGrid.add(rowHeaderCell, 0, row + 1);
+
+            for (int column = 0; column < Board.DEFAULT_SIZE; column++) {
+                Coordinate coordinate = new Coordinate(row, column);
+                StackPane cell = createBoardCell(board.getCell(coordinate), cellStyleClass, revealShips, enemyBoard);
+                boardGrid.add(cell, column + 1, row + 1);
+            }
+        }
+    }
+
+    /**
+     * Creates a fixed-size header cell.
+     *
+     * @param label label displayed inside the header cell.
+     * @return visual header cell.
+     */
+    private StackPane createHeaderCell(Label label) {
+        StackPane headerCell = new StackPane(label);
+        headerCell.setPrefSize(CELL_SIZE, CELL_SIZE);
+        headerCell.setMinSize(CELL_SIZE, CELL_SIZE);
+        headerCell.setMaxSize(CELL_SIZE, CELL_SIZE);
+        headerCell.setAlignment(Pos.CENTER);
+        return headerCell;
+    }
+
+    /**
+     * Creates a visual cell for one board coordinate.
+     *
+     * @param boardCell      model cell.
+     * @param cellStyleClass base CSS class for the cell.
+     * @param revealShips    whether ships should be visible.
+     * @param enemyBoard     whether the cell belongs to the enemy board.
+     * @return visual board cell.
+     */
+    private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean revealShips, boolean enemyBoard) {
         StackPane visualCell = new StackPane();
 
         visualCell.setPrefSize(CELL_SIZE, CELL_SIZE);
@@ -467,6 +588,13 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         return visualCell;
     }
 
+    /**
+     * Configures click-based placement and rotation on a human board cell.
+     *
+     * @param visualCell cell displayed in the JavaFX grid.
+     * @param coordinate coordinate represented by the cell.
+     * @param boardCell  model cell represented by the visual cell.
+     */
     private void configurePlacementClick(StackPane visualCell, Coordinate coordinate, Cell boardCell) {
         visualCell.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
@@ -486,6 +614,12 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         });
     }
 
+    /**
+     * Keeps drag-and-drop support for moving already placed ships.
+     *
+     * @param visualCell cell that accepts the drop.
+     * @param coordinate destination coordinate.
+     */
     private void configurePlacementDrop(StackPane visualCell, Coordinate coordinate) {
         visualCell.setOnDragOver(event -> {
             if (event.getGestureSource() != visualCell && event.getDragboard().hasString()) {
@@ -502,6 +636,12 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         });
     }
 
+    /**
+     * Configures drag behavior for a ship that is already placed on the board.
+     *
+     * @param visualCell visual cell that starts the drag.
+     * @param ship       ship to move.
+     */
     private void configureBoardShipDrag(StackPane visualCell, Ship ship) {
         visualCell.setOnDragDetected(event -> startBoardShipDrag(event, visualCell, ship));
         visualCell.setOnDragDone(event -> {
@@ -510,6 +650,12 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         });
     }
 
+    /**
+     * Places the currently selected ship type on a coordinate.
+     *
+     * @param coordinate coordinate where the ship should start.
+     * @return true if the ship was placed; false otherwise.
+     */
     private boolean placeSelectedShip(Coordinate coordinate) {
         if (selectedShipType == null) {
             statusLabel.setText("Primero selecciona una nave disponible.");
@@ -542,6 +688,7 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
             selectedShipType = null;
 
             finishPlacementIfReady();
+            autosaveGameState();
             refreshView();
 
             return true;
@@ -551,6 +698,12 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         }
     }
 
+    /**
+     * Rotates a ship that is already placed on the board.
+     *
+     * @param event mouse event that triggered the rotation.
+     * @param ship  ship to rotate.
+     */
     private void rotatePlacedShipWithRightClick(MouseEvent event, Ship ship) {
         if (event.getButton() != MouseButton.SECONDARY) {
             return;
@@ -580,6 +733,7 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
 
             currentOrientation = newOrientation;
             statusLabel.setText(ship.getDisplayName() + " rotado a " + describeOrientation(newOrientation) + ".");
+            autosaveGameState();
             refreshView();
         } catch (InvalidPlacementException | InvalidGameStateException exception) {
             statusLabel.setText("No se puede rotar esa nave en esa posición.");
@@ -588,6 +742,13 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         event.consume();
     }
 
+    /**
+     * Starts dragging a placed ship so it can be moved to another coordinate.
+     *
+     * @param event  mouse event.
+     * @param source visual source of the drag.
+     * @param ship   ship being dragged.
+     */
     private void startBoardShipDrag(MouseEvent event, StackPane source, Ship ship) {
         draggedShip = ship;
 
@@ -605,6 +766,13 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         event.consume();
     }
 
+    /**
+     * Handles a drop event for a dragged placed ship.
+     *
+     * @param event      drag event.
+     * @param coordinate destination coordinate.
+     * @return true if the movement was completed; false otherwise.
+     */
     private boolean placeDraggedShip(DragEvent event, Coordinate coordinate) {
         Dragboard dragboard = event.getDragboard();
 
@@ -621,6 +789,12 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         return false;
     }
 
+    /**
+     * Moves the currently dragged ship to a new coordinate.
+     *
+     * @param coordinate destination coordinate.
+     * @return true if the ship was moved; false otherwise.
+     */
     private boolean moveDraggedShip(Coordinate coordinate) {
         if (draggedShip == null) {
             return false;
@@ -635,6 +809,7 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
                     draggedShip.getOrientation());
 
             statusLabel.setText(draggedShip.getDisplayName() + " reubicado en " + formatCoordinate(coordinate) + ".");
+            autosaveGameState();
             refreshView();
 
             return true;
@@ -644,6 +819,9 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         }
     }
 
+    /**
+     * Updates the status label after all human ships have been placed.
+     */
     private void finishPlacementIfReady() {
         if (!allHumanShipsPlaced()) {
             return;
@@ -652,60 +830,77 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         statusLabel.setText("Todas tus naves están ubicadas. Puedes acomodarlas o confirmar la selección.");
     }
 
+    /**
+     * Checks whether all human ships have already been placed.
+     *
+     * @return true if there are no remaining ships to place.
+     */
     private boolean allHumanShipsPlaced() {
         return remainingShips.values().stream().allMatch(count -> count == 0);
     }
 
+    /**
+     * Randomly places the complete machine fleet.
+     *
+     * 
+     * This method is used before the battle starts and allows the opponent
+     * board to be different in each new match.
+     * 
+     */
     private void placeMachineFleet() {
-        Random random = new Random();
-        Player machinePlayer = currentGame.getMachinePlayer();
-        Board machineBoard = machinePlayer.getBoard();
+        List<Ship> machineFleet = List.of(
+                new AircraftCarrier(),
+                new Submarine(),
+                new Submarine(),
+                new Destroyer(),
+                new Destroyer(),
+                new Destroyer(),
+                new Frigate(),
+                new Frigate(),
+                new Frigate(),
+                new Frigate());
 
-        List<Ship> shipsToPlace = new java.util.ArrayList<>();
-        shipsToPlace.add(new AircraftCarrier());
-        shipsToPlace.add(new Submarine());
-        shipsToPlace.add(new Submarine());
-        shipsToPlace.add(new Destroyer());
-        shipsToPlace.add(new Destroyer());
-        shipsToPlace.add(new Destroyer());
-        shipsToPlace.add(new Frigate());
-        shipsToPlace.add(new Frigate());
-        shipsToPlace.add(new Frigate());
-        shipsToPlace.add(new Frigate());
-
-        for (Ship ship : shipsToPlace) {
-            boolean placed = false;
-            int attempts = 0;
-
-            while (!placed && attempts < 1000) {
-                int row = random.nextInt(Board.DEFAULT_SIZE);
-                int col = random.nextInt(Board.DEFAULT_SIZE);
-                Orientation orientation = random.nextBoolean()
-                        ? Orientation.HORIZONTAL
-                        : Orientation.VERTICAL;
-
-                Coordinate startCoordinate = new Coordinate(row, col);
-
-                try {
-                    gameService.placeShip(
-                            currentGame,
-                            machinePlayer,
-                            ship,
-                            startCoordinate,
-                            orientation);
-                    placed = true;
-                } catch (InvalidPlacementException | InvalidGameStateException e) {
-                    attempts++;
-                }
-            }
-
-            if (!placed) {
-                throw new InvalidPlacementException(
-                        "No fue posible ubicar aleatoriamente la flota de la máquina.");
-            }
+        for (Ship ship : machineFleet) {
+            placeMachineShipRandomly(ship);
         }
     }
 
+    /**
+     * Attempts to place one machine ship in a random valid position.
+     *
+     * @param ship ship to place.
+     * @throws InvalidPlacementException if a valid random position cannot be found.
+     */
+    private void placeMachineShipRandomly(Ship ship) {
+        for (int attempt = 0; attempt < RANDOM_PLACEMENT_ATTEMPTS; attempt++) {
+            Coordinate coordinate = new Coordinate(
+                    random.nextInt(Board.DEFAULT_SIZE),
+                    random.nextInt(Board.DEFAULT_SIZE));
+
+            Orientation orientation = random.nextBoolean() ? Orientation.HORIZONTAL : Orientation.VERTICAL;
+
+            try {
+                gameService.placeShip(
+                        currentGame,
+                        currentGame.getMachinePlayer(),
+                        ship,
+                        coordinate,
+                        orientation);
+                return;
+            } catch (InvalidPlacementException | InvalidGameStateException exception) {
+                // Try another random position.
+            }
+        }
+
+        throw new InvalidPlacementException("No fue posible ubicar aleatoriamente la flota de la máquina.");
+    }
+
+    /**
+     * Creates a concrete ship instance from a ship type.
+     *
+     * @param shipType type of ship to create.
+     * @return concrete ship instance.
+     */
     private Ship createShip(ShipType shipType) {
         return switch (shipType) {
             case AIRCRAFT_CARRIER -> new AircraftCarrier();
@@ -715,6 +910,13 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         };
     }
 
+    /**
+     * Resolves the CSS class that represents a cell state.
+     *
+     * @param cell        model cell.
+     * @param revealShips whether ships are visible on the board.
+     * @return CSS class for the cell state.
+     */
     private String resolveCellStateStyle(Cell cell, boolean revealShips) {
         CellState state = cell.getState();
 
@@ -737,6 +939,12 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         return "cell-empty";
     }
 
+    /**
+     * Draws all ship sprites that should be visible on a board.
+     *
+     * @param boardGrid grid where sprites are added.
+     * @param board     board used to find ships.
+     */
     private void overlayShipSprites(GridPane boardGrid, Board board) {
         Set<Ship> ships = new LinkedHashSet<>();
 
@@ -751,6 +959,12 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         }
     }
 
+    /**
+     * Adds one ship sprite to the board grid.
+     *
+     * @param boardGrid grid where the sprite is added.
+     * @param ship      ship represented by the sprite.
+     */
     private void addShipSpriteToGrid(GridPane boardGrid, Ship ship) {
         List<Coordinate> positions = ship.getPositions();
 
@@ -761,7 +975,7 @@ private StackPane createBoardCell(Cell boardCell, String cellStyleClass, boolean
         Coordinate start = positions.get(0);
         StackPane shipContainer = createShipSpriteContainer(ship);
 
-boardGrid.add(shipContainer, start.getColumn() + 1, start.getRow() + 1);
+        boardGrid.add(shipContainer, start.getColumn() + 1, start.getRow() + 1);
 
         if (ship.getOrientation() == Orientation.HORIZONTAL) {
             GridPane.setColumnSpan(shipContainer, ship.getSize());
@@ -770,6 +984,12 @@ boardGrid.add(shipContainer, start.getColumn() + 1, start.getRow() + 1);
         }
     }
 
+    /**
+     * Creates a visual container for a ship sprite.
+     *
+     * @param ship ship represented by the container.
+     * @return visual ship container.
+     */
     private StackPane createShipSpriteContainer(Ship ship) {
         int span = ship.getSize();
         boolean horizontal = ship.getOrientation() == Orientation.HORIZONTAL;
@@ -804,6 +1024,12 @@ boardGrid.add(shipContainer, start.getColumn() + 1, start.getRow() + 1);
         return container;
     }
 
+    /**
+     * Draws shot markers on top of water, hit, and sunk cells.
+     *
+     * @param boardGrid grid where markers are added.
+     * @param board     board used to find shot cells.
+     */
     private void overlayShotMarkers(GridPane boardGrid, Board board) {
         for (Cell cell : board.getCells().values()) {
             CellState state = cell.getState();
@@ -827,11 +1053,16 @@ boardGrid.add(shipContainer, start.getColumn() + 1, start.getRow() + 1);
                 shotImage.setMouseTransparent(true);
 
                 marker.getChildren().add(shotImage);
-boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
+                boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
             }
         }
     }
 
+    /**
+     * Handles human clicks on the enemy board.
+     *
+     * @param coordinate enemy coordinate selected by the human player.
+     */
     private void onEnemyCellClicked(Coordinate coordinate) {
         if (currentGame == null || currentGame.getPhase() != GamePhase.IN_PROGRESS) {
             return;
@@ -846,17 +1077,21 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
             ShotResult result = gameService.humanShoots(currentGame, coordinate);
             statusLabel.setText("Tu disparo en " + formatCoordinate(coordinate) + ": " + describeShotResult(result));
 
+            autosaveGameState();
             refreshView();
-            autoSaveGame();
             handleEndOrMachineTurn();
         } catch (InvalidGameStateException | InvalidShotException exception) {
             statusLabel.setText(exception.getMessage());
         }
     }
 
+    /**
+     * Decides whether the game ended or whether the machine must play.
+     */
     private void handleEndOrMachineTurn() {
         if (currentGame.getPhase() == GamePhase.FINISHED) {
             showFinishedMessage();
+            autosaveGameState();
             refreshView();
             return;
         }
@@ -866,38 +1101,82 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
         }
     }
 
+    /**
+     * Executes the machine turn in a background thread using a JavaFX Task.
+     *
+     * 
+     * The task waits briefly to simulate thinking time, executes the machine
+     * shot in the model, and then updates the UI when the task succeeds.
+     * 
+     */
     private void playMachineTurn() {
         machineTurnRunning = true;
         machineBoardGrid.setDisable(true);
-        statusLabel.setText("Turno de la máquina...");
+        statusLabel.setText("La máquina está pensando...");
 
-        PauseTransition pause = new PauseTransition(MACHINE_TURN_DELAY);
+        Task<MachineShotResult> machineTurnTask = new Task<>() {
+            @Override
+            protected MachineShotResult call() throws Exception {
+                Thread.sleep(MACHINE_TURN_DELAY_MILLIS);
 
-        pause.setOnFinished(event -> {
-            try {
                 ShotResult result = gameService.machineShoots(currentGame);
                 Coordinate coordinate = currentGame.getShotHistory().get(0).getCoordinate();
 
-                statusLabel.setText(
-                        "La máquina disparó en " + formatCoordinate(coordinate) + ": " + describeShotResult(result));
-            } catch (InvalidGameStateException | InvalidShotException exception) {
-                statusLabel.setText(exception.getMessage());
-            } finally {
-                machineTurnRunning = false;
-                refreshView();
-                autoSaveGame();
-
-                if (currentGame.getPhase() == GamePhase.FINISHED) {
-                    showFinishedMessage();
-                } else if (currentGame.getCurrentTurn() == Turn.MACHINE) {
-                    playMachineTurn();
-                }
+                return new MachineShotResult(coordinate, result);
             }
-        });
+        };
 
-        pause.play();
+        machineTurnTask.setOnSucceeded(event -> handleMachineTurnSuccess(machineTurnTask.getValue()));
+        machineTurnTask.setOnFailed(event -> handleMachineTurnFailure(machineTurnTask.getException()));
+
+        Thread machineThread = new Thread(machineTurnTask, "machine-turn-thread");
+        machineThread.setDaemon(true);
+        machineThread.start();
     }
 
+    /**
+     * Handles a successful machine turn.
+     *
+     * @param machineShotResult result produced by the background task.
+     */
+    private void handleMachineTurnSuccess(MachineShotResult machineShotResult) {
+        statusLabel.setText(
+                "La máquina disparó en "
+                        + formatCoordinate(machineShotResult.coordinate())
+                        + ": "
+                        + describeShotResult(machineShotResult.result()));
+
+        machineTurnRunning = false;
+        autosaveGameState();
+        refreshView();
+
+        if (currentGame.getPhase() == GamePhase.FINISHED) {
+            showFinishedMessage();
+            autosaveGameState();
+        } else if (currentGame.getCurrentTurn() == Turn.MACHINE) {
+            playMachineTurn();
+        }
+    }
+
+    /**
+     * Handles an error produced while the machine turn task was running.
+     *
+     * @param exception exception produced by the task.
+     */
+    private void handleMachineTurnFailure(Throwable exception) {
+        if (exception != null && exception.getMessage() != null) {
+            statusLabel.setText(exception.getMessage());
+        } else {
+            statusLabel.setText("No fue posible ejecutar el turno de la máquina.");
+        }
+
+        machineTurnRunning = false;
+        refreshView();
+    }
+
+    /**
+     * Shows the final message when the game ends.
+     */
     private void showFinishedMessage() {
         if (currentGame.getMachinePlayer().hasLost()) {
             statusLabel.setText("Ganaste la partida.");
@@ -907,18 +1186,32 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
     }
 
     /**
-     * Guarda automáticamente el estado del juego tras cada jugada
-     * (serialización del juego completo + archivo plano de estadísticas).
+     * Saves the current game without interrupting the user flow.
      */
-    private void autoSaveGame() {
+    private void autosaveGameState() {
+        if (currentGame == null) {
+            return;
+        }
+
         try {
+            if (currentGame.getPhase() == GamePhase.FINISHED) {
+                playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
+                Files.deleteIfExists(GAME_SAVE_PATH);
+                return;
+            }
+
             gameStatePersistenceService.saveGame(currentGame, GAME_SAVE_PATH);
-            playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
         } catch (IOException exception) {
-            System.err.println("No fue posible guardar la partida automáticamente: " + exception.getMessage());
+            // Autosave should not break the current game flow.
         }
     }
 
+    /**
+     * Returns the sprite viewport used by each ship type.
+     *
+     * @param shipType ship type.
+     * @return rectangle used to crop the ship sprite.
+     */
     private Rectangle2D getSpriteViewport(ShipType shipType) {
         return switch (shipType) {
             case AIRCRAFT_CARRIER -> new Rectangle2D(405, 28, 705, 200);
@@ -928,6 +1221,12 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
         };
     }
 
+    /**
+     * Returns the sprite viewport used by each shot state.
+     *
+     * @param state cell state.
+     * @return rectangle used to crop the shot sprite.
+     */
     private Rectangle2D getShotSpriteViewport(CellState state) {
         return switch (state) {
             case WATER -> new Rectangle2D(0, 0, SHOT_FRAME_WIDTH, SHOT_FRAME_HEIGHT);
@@ -937,6 +1236,12 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
         };
     }
 
+    /**
+     * Returns the preview width used by each ship type in the side panel.
+     *
+     * @param shipType ship type.
+     * @return preview width.
+     */
     private double getShipPreviewWidth(ShipType shipType) {
         return switch (shipType) {
             case AIRCRAFT_CARRIER -> 95;
@@ -946,6 +1251,12 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
         };
     }
 
+    /**
+     * Converts a shot result into user-facing text.
+     *
+     * @param result shot result.
+     * @return readable shot result.
+     */
     private String describeShotResult(ShotResult result) {
         return switch (result) {
             case WATER -> "agua";
@@ -955,10 +1266,22 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
         };
     }
 
+    /**
+     * Converts an orientation into user-facing text.
+     *
+     * @param orientation orientation to describe.
+     * @return readable orientation.
+     */
     private String describeOrientation(Orientation orientation) {
         return orientation == Orientation.HORIZONTAL ? "Horizontal" : "Vertical";
     }
 
+    /**
+     * Converts a game phase into user-facing text.
+     *
+     * @param phase phase to describe.
+     * @return readable phase.
+     */
     private String describePhase(GamePhase phase) {
         return switch (phase) {
             case PLACEMENT -> "Colocación";
@@ -968,10 +1291,23 @@ boardGrid.add(marker, coordinate.getColumn() + 1, coordinate.getRow() + 1);
         };
     }
 
+    /**
+     * Formats a coordinate using one-based numbers.
+     *
+     * @param coordinate coordinate to format.
+     * @return readable coordinate.
+     */
     private String formatCoordinate(Coordinate coordinate) {
         return "(" + (coordinate.getRow() + 1) + "," + (coordinate.getColumn() + 1) + ")";
     }
 
-    private record ShipPlacement(Ship ship, Coordinate coordinate, Orientation orientation) {
+    /**
+     * Small immutable value used to return the machine shot coordinate and
+     * result from the background task.
+     *
+     * @param coordinate coordinate selected by the machine.
+     * @param result     shot result.
+     */
+    private record MachineShotResult(Coordinate coordinate, ShotResult result) {
     }
 }

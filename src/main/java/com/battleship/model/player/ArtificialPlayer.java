@@ -8,28 +8,39 @@ import java.util.Queue;
 
 import com.battleship.model.board.Board;
 import com.battleship.model.board.Coordinate;
+import com.battleship.strategy.ShotStrategy;
+import com.battleship.strategy.SmartShotStrategy;
 
 /**
- * Representa al jugador artificial o máquina.
+ * Represents an artificial player in the Battleship game, capable of selecting
+ * shots based on a defined strategy.
  */
 public class ArtificialPlayer extends Player {
 
     private static final long serialVersionUID = 1L;
 
     private final Queue<Coordinate> availableShots;
+    private ShotStrategy shotStrategy;
 
     public ArtificialPlayer() {
         super("Máquina");
         this.availableShots = new ArrayDeque<>();
+        this.shotStrategy = new SmartShotStrategy();
         loadAvailableShots(Board.DEFAULT_SIZE);
     }
 
     public Coordinate nextAvailableShot() {
+        return nextAvailableShot(null);
+    }
+
+    public Coordinate nextAvailableShot(Board targetBoard) {
+        ensureShotStrategy();
+
         if (availableShots.isEmpty()) {
             loadAvailableShots(Board.DEFAULT_SIZE);
         }
 
-        return availableShots.poll();
+        return shotStrategy.selectShot(targetBoard, availableShots);
     }
 
     public int getRemainingShotsCount() {
@@ -38,6 +49,26 @@ public class ArtificialPlayer extends Player {
 
     public void reloadAvailableShots(int boardSize) {
         loadAvailableShots(boardSize);
+    }
+
+    public ShotStrategy getShotStrategy() {
+        ensureShotStrategy();
+        return shotStrategy;
+    }
+
+    public void setShotStrategy(ShotStrategy shotStrategy) {
+        if (shotStrategy == null) {
+            this.shotStrategy = new SmartShotStrategy();
+            return;
+        }
+
+        this.shotStrategy = shotStrategy;
+    }
+
+    private void ensureShotStrategy() {
+        if (shotStrategy == null) {
+            shotStrategy = new SmartShotStrategy();
+        }
     }
 
     private void loadAvailableShots(int boardSize) {
