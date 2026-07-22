@@ -12,6 +12,7 @@ module com.battleship {
     exports com.battleship.model.history;
     exports com.battleship.model.player;
     exports com.battleship.model.ship;
+    exports com.battleship.model.ship.factory;
     exports com.battleship.persistence;
     exports com.battleship.service;
     exports com.battleship.strategy;
