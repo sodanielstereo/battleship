@@ -1,7 +1,6 @@
 package com.battleship.controller;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.LinkedHashSet;
@@ -25,8 +24,7 @@ import com.battleship.model.enums.ShotResult;
 import com.battleship.model.enums.Turn;
 import com.battleship.model.ship.Ship;
 import com.battleship.model.ship.factory.ShipFactoryRegistry;
-import com.battleship.persistence.GameStatePersistenceService;
-import com.battleship.persistence.PlayerStatsFileService;
+import com.battleship.persistence.GamePersistenceTarget;
 import com.battleship.service.GameService;
 
 import javafx.concurrent.Task;
@@ -87,8 +85,7 @@ public class BattleController {
     private static final int RANDOM_PLACEMENT_ATTEMPTS = 300;
 
     private final GameService gameService;
-    private final GameStatePersistenceService gameStatePersistenceService;
-    private final PlayerStatsFileService playerStatsFileService;
+    private final GamePersistenceTarget persistenceAdapter;
     private final Map<ShipType, Integer> remainingShips;
     private final Random random;
 
@@ -136,8 +133,7 @@ public class BattleController {
      */
     public BattleController() {
         this.gameService = new GameService();
-        this.gameStatePersistenceService = new GameStatePersistenceService();
-        this.playerStatsFileService = new PlayerStatsFileService();
+        this.persistenceAdapter = new com.battleship.persistence.GamePersistenceAdapter();
         this.remainingShips = new EnumMap<>(ShipType.class);
         this.random = new Random();
         this.currentOrientation = Orientation.HORIZONTAL;
@@ -219,8 +215,7 @@ public class BattleController {
     }
 
     /**
-     * Saves the current game state using serialization and stores basic player
-     * statistics in a flat file.
+     * Saves the current game state using the persistence adapter.
      */
     @FXML
     private void onSaveGameClicked() {
@@ -231,14 +226,13 @@ public class BattleController {
 
         try {
             if (currentGame.getPhase() == GamePhase.FINISHED) {
-                playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
-                Files.deleteIfExists(GAME_SAVE_PATH);
+                persistenceAdapter.saveStats(currentGame, PLAYER_STATS_PATH);
+                persistenceAdapter.deleteGameState(GAME_SAVE_PATH);
                 statusLabel.setText("La partida finalizada fue registrada y no quedará como partida cargable.");
                 return;
             }
 
-            gameStatePersistenceService.saveGame(currentGame, GAME_SAVE_PATH);
-            playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
+            persistenceAdapter.saveGame(currentGame, GAME_SAVE_PATH, PLAYER_STATS_PATH);
             statusLabel.setText("Partida guardada correctamente.");
         } catch (IOException exception) {
             statusLabel.setText("No fue posible guardar la partida.");
@@ -1189,12 +1183,12 @@ public class BattleController {
 
         try {
             if (currentGame.getPhase() == GamePhase.FINISHED) {
-                playerStatsFileService.savePlayerStats(currentGame, PLAYER_STATS_PATH);
-                Files.deleteIfExists(GAME_SAVE_PATH);
+                persistenceAdapter.saveStats(currentGame, PLAYER_STATS_PATH);
+                persistenceAdapter.deleteGameState(GAME_SAVE_PATH);
                 return;
             }
 
-            gameStatePersistenceService.saveGame(currentGame, GAME_SAVE_PATH);
+            persistenceAdapter.saveGame(currentGame, GAME_SAVE_PATH, PLAYER_STATS_PATH);
         } catch (IOException exception) {
             // Autosave should not break the current game flow.
         }
