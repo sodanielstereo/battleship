@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.battleship.animation.OceanWaveAnimator;
 import com.battleship.exception.InvalidGameStateException;
 import com.battleship.exception.InvalidPlacementException;
 import com.battleship.exception.InvalidShotException;
@@ -54,6 +55,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 /**
  * Controller for the battle screen.
@@ -61,7 +63,7 @@ import javafx.stage.Stage;
  * This controller connects the JavaFX view with the game model and service layer.
  * It handles ship selection, ship placement, ship movement, right-click rotation,
  * manual placement confirmation, shooting, machine turns, autosave, sprite
- * rendering, and navigation back to the initial screen.
+ * rendering, animated ocean tiles, and navigation back to the initial screen.
  *
  * The machine turn is executed through a JavaFX {@link javafx.concurrent.Task},
  * so the user interface remains responsive while the artificial player waits and
@@ -74,6 +76,7 @@ public class BattleController {
     private static final String SHOTS_HIT_SPRITE_PATH = "/com/battleship/sprites/shots_hit.png";
     private static final String SHOTS_WATER_SPRITE_PATH = "/com/battleship/sprites/shots_water.png";
     private static final String SHOTS_SUNK_SPRITE_PATH = "/com/battleship/sprites/shots_sunk.png";
+    private static final String OCEAN_SPRITE_SHEET_PATH = "/com/battleship/sprites/Ocean_SpriteSheet.png";
 
     private static final Path GAME_SAVE_PATH = Path.of("data", "game-state.ser");
     private static final Path PLAYER_STATS_PATH = Path.of("data", "player-stats.txt");
@@ -85,6 +88,8 @@ public class BattleController {
     private static final String DRAG_MOVE_MARKER = "MOVE";
     private static final long MACHINE_TURN_DELAY_MILLIS = 650;
     private static final int CELL_SIZE = 34;
+    private static final double OCEAN_ANIMATION_INTERVAL_MILLIS = 350;
+    private static final double OCEAN_LAYER_MARGIN = 2;
     private static final int RANDOM_PLACEMENT_ATTEMPTS = 300;
 
     private final GameService gameService;
@@ -97,6 +102,7 @@ public class BattleController {
     private Image shotsSpriteHit;
     private Image shotsSpriteWater;
     private Image shotsSpriteSunk;
+    private OceanWaveAnimator oceanWaveAnimator;
     private Orientation currentOrientation;
     private ShipType selectedShipType;
     private Ship draggedShip;
@@ -156,6 +162,7 @@ public class BattleController {
         this.shotsSpriteHit = new Image(getClass().getResourceAsStream(SHOTS_HIT_SPRITE_PATH));
         this.shotsSpriteWater = new Image(getClass().getResourceAsStream(SHOTS_WATER_SPRITE_PATH));
         this.shotsSpriteSunk = new Image(getClass().getResourceAsStream(SHOTS_SUNK_SPRITE_PATH));
+        initializeOceanAnimation();
 
         if (currentGame.getPhase() == GamePhase.PLACEMENT) {
             currentGame.setPhase(GamePhase.PLAYER_POSITIONING_SHIPS);
@@ -178,6 +185,25 @@ public class BattleController {
         }
 
         refreshView();
+    }
+
+    /**
+     * Initializes the ocean animation used by visually empty water cells.
+     *
+     * <p>The ocean sprite sheet is loaded and split into frames only once. The
+     * animator is then reused every time the board is refreshed, avoiding
+     * repeated image cutting or unnecessary resource loading.</p>
+     */
+    private void initializeOceanAnimation() {
+        if (oceanWaveAnimator != null) {
+            oceanWaveAnimator.start();
+            return;
+        }
+
+        oceanWaveAnimator = new OceanWaveAnimator(
+                OCEAN_SPRITE_SHEET_PATH,
+                Duration.millis(OCEAN_ANIMATION_INTERVAL_MILLIS));
+        oceanWaveAnimator.start();
     }
 
     /**
@@ -255,6 +281,8 @@ public class BattleController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(MAIN_VIEW_PATH));
             Parent root = loader.load();
 
+            disposeOceanAnimation();
+
             Stage stage = (Stage) playerInfoLabel.getScene().getWindow();
             Scene scene = new Scene(root, 900, 600);
 
@@ -263,6 +291,19 @@ public class BattleController {
             stage.show();
         } catch (IOException exception) {
             statusLabel.setText("No fue posible regresar a la pantalla inicial.");
+        }
+    }
+
+    /**
+     * Stops the ocean animation and releases all registered cell references.
+     *
+     * <p>This method is called before leaving the battle screen so the JavaFX
+     * timeline does not keep updating nodes that are no longer displayed.</p>
+     */
+    private void disposeOceanAnimation() {
+        if (oceanWaveAnimator != null) {
+            oceanWaveAnimator.dispose();
+            oceanWaveAnimator = null;
         }
     }
 
@@ -298,6 +339,8 @@ public class BattleController {
      * Refreshes labels, boards, panels, checkboxes, and button states.
      */
     private void refreshView() {
+        prepareOceanAnimationForBoardRefresh();
+
         phaseInfoLabel.setText(
                 "Fase actual: " + describePhase(currentGame.getPhase())
                         + " | Turno: " + currentGame.getCurrentTurn());
@@ -326,6 +369,20 @@ public class BattleController {
                 currentGame.getPhase() != GamePhase.IN_PROGRESS
                         || currentGame.getCurrentTurn() != Turn.HUMAN
                         || machineTurnRunning);
+    }
+
+    /**
+     * Clears the currently registered ocean cells before the board grids are
+     * rebuilt.
+     *
+     * <p>Board rendering creates new JavaFX nodes on each refresh. Clearing the
+     * animator list prevents old, detached nodes from being updated by the
+     * timeline.</p>
+     */
+    private void prepareOceanAnimationForBoardRefresh() {
+        if (oceanWaveAnimator != null) {
+            oceanWaveAnimator.clearRegisteredCells();
+        }
     }
 
     /**
@@ -563,6 +620,10 @@ public class BattleController {
         visualCell.getStyleClass().add(cellStyleClass);
         visualCell.getStyleClass().add(resolveCellStateStyle(boardCell, revealShips));
 
+        if (shouldAnimateOceanCell(boardCell, revealShips)) {
+            visualCell.getChildren().add(createAnimatedOceanLayer());
+        }
+
         Coordinate coordinate = boardCell.getCoordinate();
 
         if (currentGame.getPhase() == GamePhase.PLAYER_POSITIONING_SHIPS && !enemyBoard) {
@@ -579,6 +640,45 @@ public class BattleController {
         }
 
         return visualCell;
+    }
+
+    /**
+     * Creates the animated ocean layer inserted behind any later board overlays.
+     *
+     * <p>The rectangle is slightly smaller than the cell to preserve the grid
+     * borders. Its fill is controlled by {@link OceanWaveAnimator}, which updates
+     * every registered rectangle at the same time.</p>
+     *
+     * @return rectangle that displays the current ocean animation frame.
+     */
+    private Rectangle createAnimatedOceanLayer() {
+        return oceanWaveAnimator.createOceanLayer(
+                CELL_SIZE - OCEAN_LAYER_MARGIN,
+                CELL_SIZE - OCEAN_LAYER_MARGIN);
+    }
+
+    /**
+     * Determines whether a cell should be rendered with the animated ocean tile.
+     *
+     * <p>This method uses the safe visual rule: only cells that should look like
+     * water to the player are animated. Hidden enemy ships are animated as water
+     * when {@code revealShips} is {@code false}, so the animation never reveals
+     * the machine fleet. Visible ships and shot-result cells are not animated.</p>
+     *
+     * @param boardCell model cell represented by the visual cell.
+     * @param revealShips whether ships are currently visible on this board.
+     * @return true when the visual cell should receive an animated ocean layer.
+     */
+    private boolean shouldAnimateOceanCell(Cell boardCell, boolean revealShips) {
+        CellState state = boardCell.getState();
+
+        if (state == CellState.EMPTY) {
+            return oceanWaveAnimator != null;
+        }
+
+        return oceanWaveAnimator != null
+                && state == CellState.SHIP
+                && !revealShips;
     }
 
     /**
